@@ -1,0 +1,1783 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>模範病院稽查</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Press+Start+2P&display=swap">
+<style>
+  :root{
+    --room:#23261f;
+    --shell:#cec8b6;
+    --shell-hi:#e3ddcc;
+    --shell-lo:#a9a390;
+    --shell-edge:#7e7866;
+    --plate:#8d2f28;
+    --ink:#2a281f;
+    --btn-a:#7e3430;
+    --btn-b:#474a44;
+    --btn-lo:#31332e;
+    --bezel:#2c3028;
+    --led:#c4453a;
+    --screen-on:#1b1725;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0;background:
+      radial-gradient(120% 80% at 50% 0%, #34382e 0%, var(--room) 60%, #16180f 100%);
+    color:var(--shell-hi);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    padding:8px 10px;box-sizing:border-box;
+    overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+  }
+  *{-webkit-tap-highlight-color:transparent;}
+
+  /* 機身 9:16 貼合手機；螢幕另外維持 4:3 */
+  .cab{
+    container-type:inline-size;
+    width:min(100%,430px,calc((100vh - 18px) * 0.5625));
+    width:min(100%,430px,calc((100svh - 18px) * 0.5625));
+    aspect-ratio:9/16;
+    display:flex;flex-direction:column;gap:2cqw;
+    box-sizing:border-box;
+    padding:clamp(9px,3.4vw,15px) clamp(9px,3.4vw,15px) clamp(11px,4vw,18px);
+    background:linear-gradient(168deg,var(--shell-hi) 0%,var(--shell) 30%,var(--shell-lo) 100%);
+    border-radius:4cqw 4cqw 13cqw 4cqw;
+    border:1px solid var(--shell-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.75),
+      inset 0 -3px 6px rgba(0,0,0,.22),
+      0 18px 34px rgba(0,0,0,.5);
+  }
+
+  .plate{
+    display:flex;align-items:center;gap:2cqw;flex:0 0 auto;
+    font-size:2.5cqw;letter-spacing:.14em;color:var(--ink);opacity:.85;
+  }
+  .plate .tag{
+    background:var(--plate);color:#f3e7dc;
+    padding:.6cqw 1.6cqw;border-radius:2px;letter-spacing:.2em;font-weight:700;
+  }
+  .plate .rule{flex:1;height:1px;background:var(--shell-edge);opacity:.5;}
+
+  .screenbox{
+    position:relative;flex:0 0 auto;
+    background:linear-gradient(180deg,#333729,#22261c);
+    border-radius:2.5cqw 2.5cqw 6cqw 2.5cqw;
+    padding:4cqw 3.6cqw 6.2cqw;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.4);
+  }
+  .screenbox .mark{
+    position:absolute;left:3.8cqw;bottom:1.6cqw;
+    font-size:2cqw;letter-spacing:.24em;color:#8d9482;
+  }
+  .screenbox .led{
+    position:absolute;right:3.8cqw;bottom:1.9cqw;width:1.6cqw;height:1.6cqw;border-radius:50%;
+    background:var(--led);box-shadow:0 0 6px 1px rgba(196,69,58,.8);
+  }
+  .silk{
+    flex:0 0 auto;text-align:center;
+    font-size:2.2cqw;letter-spacing:.22em;color:var(--ink);opacity:.45;
+  }
+
+  .screen{
+    position:relative;aspect-ratio:4/3;width:100%;
+    background:var(--screen-on);border-radius:2px;overflow:hidden;
+    box-shadow:inset 0 0 12px rgba(25,35,27,.45);
+  }
+  .screen canvas{
+    position:absolute;inset:0;width:100%;height:100%;display:block;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  .screen .scan{
+    position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:repeating-linear-gradient(to bottom,rgba(12,9,22,.16) 0 1px,transparent 1px 3px);
+    opacity:.4;
+  }
+
+  /* 單色螢幕上唯一的紅：印泥 */
+  .stamp{
+    position:absolute;z-index:4;right:5%;bottom:5%;
+    width:26%;aspect-ratio:1;border-radius:50%;
+    display:none;place-items:center;
+    color:#a5312a;border:3px double #a5312a;
+    font-weight:900;letter-spacing:.06em;line-height:1.15;text-align:center;
+    font-size:clamp(10px,2.9vw,14px);
+    transform:rotate(-13deg);opacity:.88;mix-blend-mode:multiply;
+  }
+  .stamp.show{display:grid;animation:slam .42s cubic-bezier(.2,1.5,.4,1) both;}
+  .stamp b{display:block;font-size:.72em;letter-spacing:.24em;font-weight:700;opacity:.8;}
+  @keyframes slam{
+    0%{transform:rotate(-30deg) scale(2.6);opacity:0;}
+    70%{transform:rotate(-11deg) scale(.94);opacity:.95;}
+    100%{transform:rotate(-13deg) scale(1);opacity:.88;}
+  }
+  @media (prefers-reduced-motion:reduce){ .stamp.show{animation:none;} }
+
+  .ctrl{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;}
+  .pad{display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 1cqw;}
+  .dpad{display:grid;grid-template-columns:repeat(3,11cqw);grid-template-rows:repeat(3,11cqw);}
+  .key{
+    border:0;padding:0;margin:0;touch-action:none;cursor:pointer;
+    background:linear-gradient(170deg,#4d5049,#2b2d28);
+    color:#cdc8b8;font-size:3.2cqw;display:grid;place-items:center;
+    box-shadow:0 2px 0 var(--btn-lo),0 3px 5px rgba(0,0,0,.35);
+  }
+  .key.on{transform:translateY(2px);box-shadow:0 0 0 var(--btn-lo),0 1px 3px rgba(0,0,0,.4);filter:brightness(1.2);}
+  .dpad .key{width:11cqw;height:11cqw;}
+  .dpad .u{grid-area:1/2;border-radius:1.6cqw 1.6cqw 0 0;}
+  .dpad .l{grid-area:2/1;border-radius:1.6cqw 0 0 1.6cqw;}
+  .dpad .c{grid-area:2/2;background:#3a3d37;box-shadow:inset 0 0 4px rgba(0,0,0,.6);}
+  .dpad .r{grid-area:2/3;border-radius:0 1.6cqw 1.6cqw 0;}
+  .dpad .d{grid-area:3/2;border-radius:0 0 1.6cqw 1.6cqw;}
+
+  .ab{display:flex;align-items:center;gap:3.6cqw;transform:rotate(-16deg);}
+  .round{width:15cqw;height:15cqw;border-radius:50%;font-size:4.4cqw;font-weight:900;font-family:"Press Start 2P",monospace;}
+  .round.a{background:linear-gradient(170deg,#9c4741,var(--btn-a));color:#f0dcd6;box-shadow:0 3px 0 #4e211e,0 4px 7px rgba(0,0,0,.4);}
+  .round.b{background:linear-gradient(170deg,#5c605a,var(--btn-b));color:#dcd9cf;box-shadow:0 3px 0 #2a2c28,0 4px 7px rgba(0,0,0,.4);}
+  .round.on{transform:translateY(3px);}
+  .ab .b{margin-top:5cqw;}
+
+  .sys{display:flex;justify-content:center;gap:5cqw;}
+  .pill{
+    width:19cqw;height:4.6cqw;border-radius:2.6cqw;transform:rotate(-16deg);
+    font-size:2.3cqw;letter-spacing:.16em;font-weight:700;color:#d6d2c6;
+  }
+
+  .grille{display:flex;gap:2.2cqw;justify-content:flex-end;padding-right:3cqw;transform:rotate(-24deg);transform-origin:right center;}
+  .grille i{
+    display:block;width:1.5cqw;height:10cqw;border-radius:1cqw;
+    background:linear-gradient(180deg,#a49e8c,#bdb7a5);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.5);
+  }
+
+  .foot{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:2cqw;
+    font-size:2.4cqw;letter-spacing:.1em;color:var(--ink);opacity:.72;min-height:5cqw;
+  }
+  .share{
+    border:1px solid var(--shell-edge);background:rgba(255,255,255,.35);
+    color:var(--ink);font-family:inherit;font-size:2.5cqw;letter-spacing:.1em;
+    padding:1cqw 2.4cqw;border-radius:3px;cursor:pointer;display:none;
+  }
+  .share.show{display:block;}
+  .share:active{background:rgba(255,255,255,.6);}
+  .snd{
+    border:1px solid var(--shell-edge);background:rgba(255,255,255,.35);
+    color:var(--ink);font-family:inherit;font-size:2.5cqw;letter-spacing:.1em;
+    padding:1cqw 2.4cqw;border-radius:3px;cursor:pointer;flex:0 0 auto;
+  }
+  .snd[aria-pressed="true"]{opacity:.45;}
+  .snd:active{background:rgba(255,255,255,.6);}
+  .foot .cap{flex:1;text-align:center;}
+  .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
+</style>
+
+<div class="cab">
+  <div class="plate">
+    <span class="tag">臺灣省衛生處</span>
+    <span class="rule"></span>
+    <span>病院稽查機　59-A</span>
+  </div>
+
+  <div class="screenbox">
+    <div class="screen">
+      <canvas id="cv" width="256" height="192" aria-label="模範病院稽查遊戲畫面"></canvas>
+      <div class="scan"></div>
+      <div class="stamp" id="stamp"></div>
+    </div>
+    <span class="mark">MEIHAN&nbsp;OPTICAL&nbsp;LCD</span>
+    <span class="led"></span>
+  </div>
+
+  <div class="silk">本機事證紀錄依病院評鑑辦法第七條辦理</div>
+
+  <div class="ctrl">
+    <div class="pad">
+      <div class="dpad">
+        <button class="key u" data-k="up" aria-label="上">▲</button>
+        <button class="key l" data-k="left" aria-label="左">◀</button>
+        <div class="key c" aria-hidden="true"></div>
+        <button class="key r" data-k="right" aria-label="右">▶</button>
+        <button class="key d" data-k="down" aria-label="下">▼</button>
+      </div>
+      <div class="ab">
+        <button class="key round b" data-k="b" aria-label="B 取消">B</button>
+        <button class="key round a" data-k="a" aria-label="A 確認">A</button>
+      </div>
+    </div>
+
+    <div class="sys">
+      <button class="key pill" data-k="select" aria-label="SELECT 推薦碼">SELECT</button>
+      <button class="key pill" data-k="start" aria-label="START 稽查手冊">START</button>
+    </div>
+
+    <div class="grille" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="foot">
+    <button class="snd" id="mute" aria-pressed="false" aria-label="背景音樂開關">♪ 音樂</button>
+    <span class="cap">《昨日病房》外傳</span>
+    <button class="share" id="share">分享稽查結果</button>
+  </div>
+</div>
+
+<audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+
+<script>
+(function(){
+"use strict";
+
+/* ════════ 畫布與基本繪圖 ════════ */
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var W=256,H=192;
+ctx.imageSmoothingEnabled=false;
+/* ════════ 調色盤（gather.town 風：飽和色塊＋深色描邊） ════════ */
+var K={
+  out   :"#2f2a3a", ink  :"#1b1725", soft :"#6d6880",
+  wall  :"#8fb8a8", wallL:"#a9cbbe", wallD:"#628b7d", rail :"#4e7368",
+  wood  :"#b07a45", woodD:"#7d5230", woodL:"#c9955c", seam :"#946139",
+  lino  :"#cfd8cd", linoB:"#c2ccc1", linoS:"#aab5a9",
+  terra :"#e4e0d4", terraB:"#d7d2c3", terraS:"#bbb5a4",
+  cream :"#f6f1e4", creamD:"#ded5c0",
+  white :"#ffffff",
+  metal :"#a7b0ba", metalD:"#727c88",
+  red   :"#c4493d", redD  :"#8d2f28",
+  blue  :"#4d7cb0", blueD :"#33567d",
+  gold  :"#e2b551", goldD :"#b3872f",
+  leaf  :"#5f9e5a", leafD :"#3f7340",
+  pink  :"#e39aa1",
+  glass :"#bcd9e0", glassD:"#8fb4bf",
+  paper :"#f2ead6", paperD:"#d9cdb0",
+  night :"#2a2536"
+};
+/* 舊繪圖碼的四階備援（淺→深），避免任何漏網的地方變成純黑 */
+var P=[K.cream,K.creamD,K.soft,K.ink];
+
+var FT ='700 12px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+var FTS='700 10px "Noto Sans TC","PingFang TC",sans-serif';
+var FTB='900 19px "Noto Sans TC","PingFang TC",sans-serif';
+var FTP='8px "Press Start 2P",monospace';
+
+function px(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);}
+function box(x,y,w,h,fill,line){px(x,y,w,h,line);px(x+1,y+1,w-2,h-2,fill);}
+/* gather 的家具都是「亮面＋暗面＋深色描邊」三件套 */
+function obj(x,y,w,h,fill,dark){
+  px(x,y,w,h,K.out);
+  px(x+1,y+1,w-2,h-2,fill);
+  if(dark)px(x+1,y+h-3,w-2,2,dark);
+}
+function shade(x,y,w,h,a){
+  ctx.globalAlpha=a||.16;px(x,y,w,h,"#000");ctx.globalAlpha=1;
+}
+/* 圓角白底面板，UI 用 */
+function panel(x,y,w,h,fill,line){
+  fill=fill||K.cream;line=line||K.out;
+  px(x+2,y,w-4,h,line);px(x,y+2,w,h-4,line);
+  px(x+3,y+1,w-6,h-2,fill);px(x+1,y+3,w-2,h-6,fill);
+}
+function txt(s,x,y,c,f,al){ctx.font=f||FT;ctx.fillStyle=c;ctx.textAlign=al||"left";ctx.textBaseline="alphabetic";ctx.fillText(s,x,y);ctx.textAlign="left";}
+function tw(s,f){ctx.font=f||FT;return ctx.measureText(s).width;}
+function wrap(s,max,f){
+  ctx.font=f||FT;var out=[],cur="";
+  for(var i=0;i<s.length;i++){
+    var ch=s[i];
+    if(ch==="\n"){out.push(cur);cur="";continue;}
+    if(ctx.measureText(cur+ch).width>max&&cur){out.push(cur);cur="";}
+    cur+=ch;
+  }
+  if(cur||!out.length)out.push(cur);return out;
+}
+
+/* ════════ 人物像素圖 ════════ */
+/* 大頭小身、深色描邊，12×16。色號：
+   0 描邊　1 膚色　2 頭髮／帽　3 眼睛　4 上衣　5 配件　6 褲　7 白　8 鞋　9 重點色 */
+var SPR={
+  you:{c:[K.out,"#f0c9a4","#33507a",K.night,"#c9a86a","#a8894f","#3f4a63",K.cream,K.out,K.red],
+   r:["...222222...","..22222222..","..22222222..","..00000000..",
+      "...111111...","...131131...","...111111...","...111111...",
+      "....7777....","..44444444..",".4444444444.",".4414444144.",
+      ".4444444444.","..66666666..","..666..666..","..888..888.."]},
+  youback:{c:[K.out,"#f0c9a4","#33507a",K.night,"#c9a86a","#a8894f","#3f4a63",K.cream,K.out,K.red],
+   r:["...222222...","..22222222..","..22222222..","..22222222..",
+      "...222222...","...222222...","...222222...","....2222....",
+      "....7777....","..44444444..",".4444444444.",".4414444144.",
+      ".4444444444.","..66666666..","..666..666..","..888..888.."]},
+  doc:{c:[K.out,"#f0c9a4","#b9b3ab",K.night,K.cream,"#5c6672","#4a4a55",K.cream,K.out,K.redD],
+   r:["...222222...","..22222222..","..22222222..","...111111...",
+      "..55555555..","...131131...","...111111...","....1111....",
+      "...444444...","..44444444..",".4449994444.",".4419994144.",
+      ".4449994444.","..66666666..","..666..666..","..888..888.."]},
+  nur:{c:[K.out,"#f0c9a4","#3a2e2a",K.night,"#f7f7f4","#8fb4bf","#4a4a55",K.white,K.out,K.pink],
+   r:["...777777...","..77777777..","..22222222..","...111111...",
+      "...131131...","...111111...","....1111....","...999999...",
+      "..44444444..",".4444444444.",".4414444144.",".4444444444.",
+      "..44444444..","..44444444..","..111..111..","..888..888.."]},
+  popo:{c:[K.out,"#f0c9a4","#7a5a3c",K.night,"#bcd4e8","#9bb8d0","#8fa6bd",K.white,K.out,"#7fc98f"],
+   r:["...222222...","..22222222..",".2222222222.","..21111112..",
+      "...131131...","...111111...","....1111....","...444444...",
+      "..44444444..",".4444444444.",".4414444144.",".4494444944.",
+      "..44444444..","..444..444..","..111..111..","..888..888.."]}
+};
+function sprite(name,cx,fy,flip,bob,sc){
+  sc=sc||1;
+  var S=SPR[name],a=S.r,pal=S.c,rows=a.length,w=a[0].length;
+  var x0=Math.round(cx-w*sc/2),y0=Math.round(fy-rows*sc)+(bob||0)*sc;
+  shade(x0+sc,fy-sc*1.5,(w-2)*sc,sc*2,.2);
+  for(var r=0;r<rows;r++){
+    var row=a[r];
+    for(var c=0;c<w;c++){
+      var ch=row[c];if(ch===".")continue;
+      var cc=flip?(w-1-c):c;
+      px(x0+cc*sc,y0+r*sc,sc,sc,pal[+ch]);
+    }
+  }
+}
+
+/* ════════ 三十件可調查物品 ════════ */
+/* ph = 章節；d = 調查前的初步觀察；t = 事證內容 */
+var CLUES=[
+/*<<<主線開始 這一段由 update-clues.ps1 從 Google 試算表產生，不要手改>>>*/
+ /* 第一節・大廳（報到） */
+ {id:"flag", ph:0,room:"hall", n:"榮譽錦旗", cat:"得獎經歷",s:+4,
+  d:"玻璃櫃裡掛著一面錦旗。",
+  t:"民國五十年「全省衛生模範單位」。\n流蘇整齊，玻璃上沒有一點灰。"},
+ {id:"floor", ph:0,room:"hall", n:"磨石子地板", cat:"院內整潔",s:+3,
+  d:"地板亮得可以照出人影。",
+  t:"打過蠟，連踢腳板都擦過。\n你的鞋印留在上面，很明顯。"},
+ {id:"mural", ph:0,room:"hall", n:"大廳壁畫", cat:"院內美觀",s:+3,
+  d:"整面牆是一幅大壁畫。",
+  t:"病人共同創作的燈塔，顏色飽滿。\n每一筆下面都簽了編號，沒有名字。"},
+ {id:"board", ph:0,room:"hall", n:"本月模範病人", cat:"醫護看法",s:-8,
+  d:"公佈欄上貼著一張名單。",
+  t:"十二位模範病人，全是三位數編號。\n「家屬探視」一欄，一律空白。"},
+ {id:"radio", ph:0,room:"hall", n:"院內廣播", cat:"院內環境",s:+2,key:1,
+  d:"牆角的喇叭正在播音。\n你得伸手去轉那顆旋鈕。",
+  t:"杏林之聲，愛家獎券開獎中。\n中獎的編號可以多一次探視。"},
+ /* 第二節・診療室 */
+ {id:"drug", ph:1,room:"clinic", n:"藥品櫃", cat:"藥品管理",s:+4,
+  d:"靠牆一整排的藥品櫃。",
+  t:"分類標示清楚，效期全在期限內。\n鎮靜劑另上雙鎖，領用要兩人簽名。"},
+ {id:"steri", ph:1,room:"clinic", n:"高壓消毒鍋", cat:"院內整潔",s:+3,
+  d:"角落有一台消毒鍋。",
+  t:"滅菌紀錄逐日簽核。\n三年份，沒有一天空白。"},
+ {id:"chart", ph:1,room:"clinic", n:"療程掛圖", cat:"醫療設備",s:+2,
+  d:"牆上掛著一張流程圖。",
+  t:"燈塔療程五階段，畫得很清楚。\n最後一階段的框格是空的。"},
+ {id:"band", ph:1,room:"clinic", n:"昨日之光手環", cat:"醫療設備",s:+3,key:1,
+  d:"托盤上放著幾只手環。\n拿起來，儀器大概會有反應。",
+  t:"「昨日之光」，以電流偵測情緒。\n校正紀錄每月一次，字跡工整。"},
+ {id:"ledg", ph:1,room:"clinic", n:"藥品領用簿", cat:"藥品管理",s:+4,lock:1,
+  d:"桌上攤著一本領用簿。",
+  t:"民國五十一年的採購單，\n品名欄只寫兩個字：「螺旋」。\n數量、單位、用途，全部空白。"},
+ /* 第三節・院長室 */
+ {id:"cert", ph:2,room:"office", n:"獎狀與合照", cat:"得獎經歷",s:+4,
+  d:"牆上掛滿了獎狀。",
+  t:"民國四十五年開幕剪綵照。\n旁邊是院長在日本金澤的研修證書。"},
+ {id:"art", ph:2,room:"office", n:"病人作品櫃", cat:"院內美觀",s:+3,
+  d:"玻璃櫃裡擺著病人的作品。",
+  t:"畫、手縫玩偶、摺紙，擺得整齊。\n最上層那張，畫著戴兔子面具的人。"},
+ {id:"note", ph:2,room:"office", n:"院長手記", cat:"院務紀錄",s:+2,key:1,
+  d:"桌上有一本皮面筆記。\n那是院長自己的東西。",
+  t:"民國三十九年，金澤。\n「要讓病人不再記得痛，\n　這是醫學能給的慈悲。」"},
+ {id:"index", ph:2,room:"office", n:"病歷索引卡", cat:"醫護看法",s:-9,
+  d:"抽屜裡是一整盒索引卡。",
+  t:"三百多張，全部以編號排序。\n姓名欄一律劃掉，改寫編號。"},
+ {id:"safe", ph:2,room:"office", n:"保險箱卷宗", cat:"病歷檔案",s:+6,lock:1,
+  d:"桌後有一座保險箱。",
+  t:"一份民國四十九年十二月的報告。\n整頁塗黑，只剩一行：\n「本院曾發生重大醫療事故」。"},
+ /* 第四節・波波的房間 */
+ {id:"draw", ph:3,room:"popo", n:"滿牆的畫", cat:"院內美觀",s:+2,
+  d:"牆上貼滿了蠟筆畫。",
+  t:"全是牽著手的人。\n每一張都寫著同一個詞：「朋友」。"},
+ {id:"doll", ph:3,room:"popo", n:"兔子玩偶", cat:"人文關懷",s:+2,key:1,
+  d:"床上坐著一隻布玩偶。\n要看清楚，就得把它拿起來。",
+  t:"手縫的兔子，針腳細密，耳朵補過兩次。\n標籤上寫著「000 製」。"},
+ {id:"sched", ph:3,room:"popo", n:"床頭作息表", cat:"病歷檔案",s:-13,
+  d:"床頭釘著一張表。",
+  t:"服藥、療程、休息、療程、服藥……\n一天清醒的時間，不到四個小時。"},
+ {id:"stash", ph:3,room:"popo", n:"床底的鐵盒", cat:"院內環境",s:-6,
+  d:"床底下塞著一個鐵盒。",
+  t:"沒吃完的晚餐，用手帕包著。\n梅粉結成塊了，放了很久。"},
+ {id:"win", ph:3,room:"popo", n:"房間的窗", cat:"院內環境",s:-7,
+  d:"窗戶對著後山。",
+  t:"窗框新漆過，很漂亮。\n但只開得了一指寬，裝了限位扣。"},
+ /* 第五節・病人房 */
+ {id:"bed", ph:4,room:"ward", n:"病床整理", cat:"院內整潔",s:+3,key:1,
+  d:"三張病床並排。\n要查，就得掀開棉被。",
+  t:"棉被摺成豆腐角，四床角度一致。\n枕頭上沒有一根頭髮。"},
+ {id:"menu", ph:4,room:"ward", n:"伙食菜單", cat:"院內環境",s:+2,
+  d:"牆上是本週的菜單。",
+  t:"三菜一湯，附熱量標示。\n晚餐配芭樂綠酒與梅粉。"},
+ {id:"hand", ph:4,room:"ward", n:"交班本", cat:"醫護看法",s:-9,
+  d:"護理站攤著交班本。",
+  t:"「本班平安，無異常。」\n往前翻三年，每一頁都是這六個字。"},
+ {id:"wash", ph:4,room:"ward", n:"洗衣間", cat:"院內整潔",s:+2,
+  d:"走廊底是洗衣間。",
+  t:"床單分色洗、分架晾。\n洗衣單上每一件都編了號。"},
+ {id:"log", ph:4,room:"ward", n:"值班紀錄本", cat:"病歷檔案",s:+3,lock:1,
+  d:"推車上放著值班紀錄本。",
+  t:"深夜巡房紀錄工整完整……\n但有三頁被整齊地撕掉了。\n撕痕很新。"},
+ /* 第六節・大廳（複查） */
+ {id:"ibox", ph:5,room:"hall", n:"意見箱", cat:"院內環境",s:-8,
+  d:"柱子邊有一只意見箱。",
+  t:"投信口用膠帶封著，鎖孔鏽死。\n封條日期：民國五十一年三月。"},
+ {id:"rec", ph:5,room:"hall", n:"歷年評鑑紀錄", cat:"得獎經歷",s:+3,
+  d:"櫃檯後是一整面評鑑表。",
+  t:"十五年來，每一項都是甲等以上。\n民國四十九年那一欄，是空白的。"},
+ {id:"visit", ph:5,room:"hall", n:"探視登記簿", cat:"醫護看法",s:-9,
+  d:"櫃檯上放著探視登記簿。",
+  t:"今年到現在，兩筆。\n上一筆的日期，是去年三月。"},
+ {id:"scrn", ph:5,room:"hall", n:"燈塔屏風", cat:"院內美觀",s:+2,key:1,
+  d:"大廳一側立著一座屏風。\n背面你還沒看過。",
+  t:"木作燈塔，漆色乾淨，榫接紮實。\n背面刻著一行小字：「明日會更好」。"},
+ {id:"rule", ph:5,room:"hall", n:"四大守則牌", cat:"院內環境",s:+1,
+  d:"牆上釘著四塊木牌。",
+  t:"秩序幫助我們形塑自己。\n效率幫助我們穩定自己。\n質疑幫助我們修正自己。\n揚棄幫助我們成就自己。"},
+/*<<<主線結束>>>*/
+ /* 波波贈予（不計入三十件） */
+ {id:"gift_a",bonus:1,room:"popo",n:"波波的畫",     cat:"人文關懷",s:+5,d:"",
+  t:"他從枕頭底下抽出一張畫。\n畫著一個戴帽子的人，旁邊寫著「朋友」。\n那是你。"},
+ {id:"gift_b",bonus:1,room:"popo",n:"波波的悄悄話", cat:"醫護看法",s:+2,d:"",
+  t:"「小儷以前會唱歌給我聽，\n唱《你心中的燈塔》。\n現在她都在寫表格。」"},
+ {id:"gift_c",bonus:1,room:"popo",n:"波波說的話",   cat:"病歷檔案",s:-9,d:"",
+  t:"「你說的那些……我好像都記得。」\n「可是護士長說，記得昨天是生病。」\n「那邊有一間房，我不可以進去。」"}
+];
+var CLUE={};CLUES.forEach(function(c){CLUE[c.id]=c;});
+
+/* ════════ 線索資料庫（Google 試算表・線索資料庫分頁） ════════ */
+/* 上面那 30 筆是內建備援。開場時會去抓線上表格，抓得到而且格式驗得過就以線上為準，
+   否則靜靜沿用內建的。表格只能改文案與分數，不能新增線索或搬房間——每件線索在房間裡
+   都有自己手繪的圖與座標，那些在程式裡。
+
+   這一版跑在 GitHub Pages（自有網域），沒有 Artifact 那種 CSP 限制，所以是真的即時抓：
+   改完試算表、玩家重新整理就會生效，不需要重新發布頁面。 */
+var SHEET_ID="1X9D1NlOeUxR00p2xZZtvG_lGJGxcrKAdxW8nKLm2uq0";
+var SHEET_BASE="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/export?format=csv";
+var SHEET_CSV=SHEET_BASE+"&gid=379836711";   /* 線索資料庫分頁 */
+var CODES_CSV=SHEET_BASE;                    /* 第一個分頁＝推薦碼名單 */
+var clueSrc="內建", codeSrc="內建";
+var booting=2;                               /* 兩份資料都回來（或逾時）才放行 */
+
+function parseCSV(text){
+  var rows=[],row=[],cur="",q=false,i,ch;
+  text=text.replace(/^﻿/,"");
+  for(i=0;i<text.length;i++){
+    ch=text.charAt(i);
+    if(q){
+      if(ch==='"'){ if(text.charAt(i+1)==='"'){cur+='"';i++;} else q=false; }
+      else cur+=ch;
+    }
+    else if(ch==='"')q=true;
+    else if(ch===",")  {row.push(cur);cur="";}
+    else if(ch==="\n") {row.push(cur);rows.push(row);row=[];cur="";}
+    else if(ch!=="\r") cur+=ch;
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(function(r){
+    return r.some(function(c){return c!=="";});
+  });
+}
+
+function applySheet(text){
+  var rows=parseCSV(text);
+  if(rows.length<2)return false;
+  var head=rows[0].map(function(s){return s.trim();});
+  var col={};
+  head.forEach(function(h,i){col[h]=i;});
+  var need=["代號","名稱","敘述","分數"];
+  for(var k=0;k<need.length;k++)if(col[need[k]]===undefined)return false;
+
+  var want=CLUES.filter(function(c){return !c.bonus;}).length;
+  var body=rows.slice(1);
+  if(body.length!==want)return false;
+
+  var seen={},staged=[],keyPerPhase={},i,r,id,c,s;
+  for(i=0;i<body.length;i++){
+    r=body[i];
+    id=(r[col["代號"]]||"").trim();
+    c=CLUE[id];
+    if(!c||c.bonus||seen[id])return false;      /* 不認識、或重複 */
+    seen[id]=1;
+    s=Number((r[col["分數"]]||"").trim());
+    if(!isFinite(s)||s===0||s!==Math.round(s))return false;
+    var isKey=/^[YyＹ1]/.test((r[col["關鍵標的"]]!==undefined?r[col["關鍵標的"]]:"")||"");
+    if(isKey)keyPerPhase[c.ph]=(keyPerPhase[c.ph]||0)+1;
+    staged.push({c:c,r:r,s:s,key:isKey});
+  }
+  /* 每一章都必須剛好有一件關鍵標的，否則角色不會出現、遊戲會卡死 */
+  for(i=0;i<6;i++)if(keyPerPhase[i]!==1)return false;
+
+  var un=function(v){return (v||"").replace(/\\n/g,"\n");};
+  staged.forEach(function(x){
+    var r=x.r,c=x.c;
+    c.n=(r[col["名稱"]]||c.n).trim();
+    c.t=un(r[col["敘述"]])||c.t;
+    c.s=x.s;
+    c.key=x.key?1:0;
+    if(col["初步觀察"]!==undefined&&r[col["初步觀察"]])c.d=un(r[col["初步觀察"]]);
+    if(col["評鑑項目"]!==undefined&&r[col["評鑑項目"]])c.cat=r[col["評鑑項目"]].trim();
+    if(col["限閱"]!==undefined)c.lock=/^[YyＹ1]/.test(r[col["限閱"]]||"")?1:0;
+  });
+  return true;
+}
+
+/* 把一份線上 CSV 抓回來。done() 不管成功失敗都只會被叫一次，開場才不會卡住。 */
+function grabCSV(url,ok){
+  var done=false;
+  var finish=function(){if(done)return;done=true;booting--;};
+  if(typeof fetch!=="function"){finish();return;}
+  setTimeout(finish,8000);                    /* 網路太慢就先讓玩家進遊戲 */
+  try{
+    fetch(url+"&_="+Date.now(),{mode:"cors",credentials:"omit",cache:"no-store"})
+      .then(function(r){return r.ok?r.text():null;})
+      .then(function(t){
+        if(!done&&t){try{ok(t);}catch(e){}}
+        finish();
+      })["catch"](finish);
+  }catch(e){finish();}
+}
+
+grabCSV(SHEET_CSV,function(t){ if(applySheet(t))clueSrc="試算表"; });
+grabCSV(CODES_CSV,function(t){ if(applyCodes(t))codeSrc="試算表"; });
+
+/* ════════ 章節進程 ════════ */
+/* hints：角色帶你走之前，會先透露下一區哪一件加分、哪一件扣分 */
+var PHASES=[
+ {room:"hall",  title:"大廳・報到",
+  after:{npc:"nur",go:"clinic",hints:[["drug","+"],["ledg","+"]],lines:[
+    "廣播聲忽然變大。\n有人從走廊快步走了過來。",
+    "「那個旋鈕不能動的。」\n「……你好，我是護士長，\n　你可以叫我小儷。」",
+    "「大廳看完了吧？」\n「診療室我帶你去，\n　門我來開。」",
+    "「藥品櫃你儘管寫，\n　那是我們最有把握的。」\n「桌上那本領用簿也算分，\n　但那是限閱的——\n　要另一位稽查員複核。」"]}},
+ {room:"clinic",title:"診療室",
+  after:{npc:"nur",go:"office",hints:[["cert","+"],["index","-"]],lines:[
+    "手環亮了一下，\n儀器發出短促的嗶聲。",
+    "「那個要校正過才能戴。」\n「……院長請你過去一趟。」",
+    "「你剛剛翻的那一本，\n　我沒有看到。」\n「走吧，我帶你去院長室。」",
+    "「牆上那些獎狀你儘管記，\n　那是他這輩子的東西。」\n「抽屜裡那盒索引卡會扣分，\n　寫進去對本院不好看。」"]}},
+ {room:"office",title:"院長室",
+  after:{npc:"doc",go:"popo",hints:[["draw","+"],["sched","-"]],lines:[
+    "門開了。\n有人站在你身後。",
+    "「那是我的字。」\n「稽查員，我是林衛庭。」",
+    "「你看了很多紙。」\n「五四八在鬧了。」\n「你既然要看病人，就去看病人。」",
+    "「他的畫你可以寫，\n　那是本院的成果。」\n「床頭那張作息表不必，\n　外行人看了只會誤解。」"]}},
+ {room:"popo",  title:"波波的房間",
+  after:{battle:1,go:"ward",hints:[["bed","+"],["hand","-"]]}},
+ {room:"ward",  title:"病人房",
+  after:{npc:"doc",go:"hall",hints:[["scrn","+"],["ibox","-"]],lines:[
+    "你掀開棉被的時候，\n門口有人清了清喉嚨。",
+    "「豆腐角，四床一樣。」\n「該看的，你都看完了。」",
+    "「回大廳，把該補的補齊。」\n「——你想寫什麼，我不攔你。」",
+    "「大廳那座屏風，\n　繞到背面看看，值得寫。」\n「意見箱就免了，\n　那是上一任留下來的。」"]}},
+ {room:"hall",  title:"大廳・複查",
+  after:{final:1}}
+];
+var PH_CLUES=PHASES.map(function(_,i){
+  return CLUES.filter(function(c){return c.ph===i;}).map(function(c){return c.id;});
+});
+
+/* ════════ 房間 ════════ */
+var FLOOR_Y=76, WALK={x0:14,x1:242,y0:92,y1:180};
+
+/* 每個房間有自己的牆色，一眼就知道換地方了 */
+var WALLS={
+  hall  :{mid:"#8fb8a8",light:"#a9cbbe",dark:"#628b7d",rail:"#4e7368"},
+  clinic:{mid:"#a9c3d4",light:"#c4d8e5",dark:"#7e9cb1",rail:"#5e7b90"},
+  office:{mid:"#c0a87f",light:"#d8c69f",dark:"#9a8460",rail:"#7a6748"},
+  popo  :{mid:"#ddc98d",light:"#eedfae",dark:"#b8a46d",rail:"#93804f"},
+  ward  :{mid:"#9fc6b4",light:"#bcddcd",dark:"#75a08d",rail:"#557a69"}
+};
+/* 牆面：平塗＋掛畫軌＋踢腳板。地面：木紋錯縫或方格磁磚。 */
+function wallBand(w){
+  px(0,16,W,FLOOR_Y-16,w.mid);
+  px(0,16,W,4,w.dark);
+  px(0,20,W,1,w.rail);
+  px(0,29,W,2,w.light);
+  px(0,31,W,1,w.rail);
+  px(0,FLOOR_Y-9,W,9,w.dark);
+  px(0,FLOOR_Y-10,W,1,w.rail);
+  px(0,FLOOR_Y-1,W,1,K.out);
+}
+function plankFloor(){
+  for(var y=FLOOR_Y;y<H;y+=12){
+    var r=(y-FLOOR_Y)/12;
+    px(0,y,W,12,(r%2)?K.wood:K.woodL);
+    px(0,y,W,1,K.seam);
+    for(var x=(r%2?-16:0);x<W;x+=48)px(x+24,y,1,12,K.seam);
+  }
+}
+function tileFloor(a,b,s){
+  for(var y=FLOOR_Y;y<H;y+=14)for(var x=0;x<W;x+=16){
+    var alt=((x/16|0)+(((y-FLOOR_Y)/14)|0))%2;
+    px(x,y,16,14,alt?a:b);
+    px(x+4+(alt?5:1),y+4,2,2,s);
+    px(x+10-(alt?6:0),y+9,2,2,s);
+    px(x,y,16,1,s);px(x,y,1,14,s);
+  }
+}
+/* 左右兩側 14px 以外玩家走不到，擺盆栽剛好 */
+function plant(x,y){
+  px(x+4,y,3,11,K.leafD);
+  px(x-1,y-3,9,7,K.leaf);px(x+3,y+2,9,6,K.leaf);px(x,y+6,7,5,K.leafD);
+  obj(x,y+11,11,11,"#c98b5e","#9a6640");
+  px(x-1,y+10,13,3,"#b47a50");
+}
+function baseRoom(kind,wk){
+  var w=WALLS[wk]||WALLS.hall;
+  wallBand(w);
+  if(kind===1)tileFloor(K.terra,K.terraB,K.terraS);
+  else if(kind===2)tileFloor(K.lino,K.linoB,K.linoS);
+  else plankFloor();
+  shade(0,FLOOR_Y,W,6,.12);
+  plant(1,148);plant(244,148);
+}
+function door(x,to){
+  shade(x-4,FLOOR_Y-3,32,6,.15);
+  px(x-3,31,30,FLOOR_Y-31,K.woodD);          /* 門框 */
+  px(x-1,33,26,FLOOR_Y-33,K.wood);
+  px(x+1,35,22,FLOOR_Y-39,"#3f3128");        /* 門洞 */
+  px(x+2,36,20,9,K.glass);                    /* 氣窗 */
+  px(x+2,36,20,1,K.glassD);px(x+11,36,1,9,K.glassD);
+  px(x+18,56,3,4,K.gold);
+  px(x-3,FLOOR_Y-4,30,4,K.out);
+  px(x-1,FLOOR_Y,26,7,K.redD);px(x+1,FLOOR_Y+1,22,5,K.red);   /* 門前地墊 */
+  if(to&&!opened[to]){                        /* 上鎖：交叉封條與掛鎖 */
+    px(x-1,48,26,5,K.paper);px(x-1,48,26,1,K.paperD);
+    px(x+1,49,22,1,K.red);px(x+1,51,22,1,K.red);
+    obj(x+8,58,8,8,K.metal,K.metalD);
+    px(x+10,55,4,4,K.metalD);px(x+11,60,2,3,K.out);
+  }
+}
+/* 掛在牆上的框：外深內淺 */
+function pic(x,y,w,h){obj(x,y,w,h,K.paper,K.paperD);px(x+1,y+1,w-2,1,K.white);}
+
+var ROOMS={
+ /* 大廳被第一節與第六節共用，十件物品各有各的位置，不重疊。
+    牆面上排 y19-33 給第六節的兩件長條；四個門之間的空隙 y34-72 給第一節的四件；
+    地面 y120 以下放第六節的三件立體物。四個門的落點 (34/88/142/208, y114) 保持淨空。 */
+ hall:{name:"大廳",
+  scenery:function(){
+    baseRoom(1,"hall");door(22,"office");door(76,"clinic");door(130,"popo");door(196,"ward");
+  },
+  solids:[],
+  props:{
+   /* ── 第一節・牆面四格（都掛在牆上，下緣留白，才不會跟門混淆） ── */
+   flag:{draw:function(){
+     px(46,32,32,3,K.woodD);px(46,32,32,1,"#5c3b22");
+     shade(53,37,22,26,.14);
+     obj(51,35,22,26,K.redD,"#6d241f");
+     px(53,37,18,20,K.red);
+     px(56,40,12,3,K.gold);px(56,45,12,2,K.gold);px(56,49,12,2,K.gold);
+     for(var i=0;i<5;i++)px(54+i*4,61,3,4,K.gold);
+   },zone:[48,90,28,16]},
+   board:{draw:function(){
+     shade(104,36,26,28,.14);
+     obj(102,34,26,28,K.leafD,"#2d5730");
+     px(104,36,22,24,K.paper);
+     px(106,38,18,4,K.leaf);
+     for(var i=0;i<3;i++)px(106,45+i*5,18,2,K.paperD);
+     px(112,32,6,3,K.metalD);
+   },zone:[100,90,30,16]},
+   mural:{draw:function(){
+     shade(156,36,40,30,.14);
+     obj(154,34,40,30,K.glass,K.glassD);
+     px(156,36,36,18,"#9ec9d8");px(156,54,36,8,"#4d7cb0");
+     px(170,38,6,18,K.cream);px(170,38,6,3,K.red);px(171,36,4,3,K.gold);
+     px(158,58,32,3,"#3a6390");
+     px(161,48,4,4,K.white);px(182,46,4,4,K.white);
+   },zone:[154,90,40,16]},
+   radio:{draw:function(){
+     px(234,30,4,5,K.metalD);
+     shade(230,36,18,14,.14);
+     obj(228,34,18,14,K.woodD,"#5c3b22");
+     px(230,36,14,10,"#3a2e28");
+     for(var i=0;i<3;i++)px(231,37+i*3,12,1,K.metalD);
+     px(235,48,4,7,K.metal);px(233,55,8,2,K.metalD);
+   },zone:[214,90,36,16]},
+   floor:{draw:function(){
+     ctx.globalAlpha=.55;
+     px(104,154,36,3,K.white);px(112,162,22,2,K.white);px(118,170,12,2,K.white);
+     ctx.globalAlpha=1;
+   },zone:[100,150,44,30],soft:1},
+
+   /* ── 第六節・牆面上排兩條 ── */
+   rule:{draw:function(){
+     var RW=["秩","效","質","揚"];
+     for(var i=0;i<4;i++){
+       obj(22+i*24,19,20,14,K.paper,K.paperD);
+       txt(RW[i],32+i*24,30,K.ink,FTS,"center");
+     }
+   },zone:[18,106,100,14]},
+   rec:{draw:function(){
+     obj(130,19,110,14,K.paper,K.paperD);
+     px(132,21,106,3,K.wallD);
+     for(var i=0;i<7;i++)px(134+i*15,26,12,4,i===4?K.paperD:K.leaf);
+   },zone:[126,106,116,14]},
+
+   /* ── 第六節・地面三件 ── */
+   ibox:{draw:function(){
+     px(22,120,24,4,K.wood);
+     obj(22,124,24,20,K.leafD,"#2d5730");
+     px(26,128,16,3,K.night);
+     px(25,127,18,5,K.paper);px(25,127,18,1,K.paperD);
+     obj(26,144,16,12,K.metalD,K.out);
+   },zone:[16,156,34,16],solid:[22,124,24,32]},
+   scrn:{draw:function(){
+     obj(60,120,32,46,K.wood,K.woodD);
+     px(62,122,28,42,K.paper);px(62,122,28,1,K.white);
+     px(72,128,8,26,K.cream);px(72,128,8,3,K.red);px(73,125,6,4,K.gold);
+     px(65,156,22,4,"#4d7cb0");
+   },zone:[56,166,40,12],solid:[60,120,32,46]},
+   visit:{draw:function(){
+     obj(150,124,58,10,K.wood,K.woodD);
+     px(152,134,54,18,K.woodD);px(152,134,54,1,K.seam);
+     obj(166,115,24,10,K.paper,K.paperD);
+     px(168,118,20,2,K.soft);px(177,115,1,10,K.paperD);
+   },zone:[146,152,66,16],solid:[150,124,58,28]}
+  }},
+
+ clinic:{name:"診療室",
+  scenery:function(){
+    baseRoom(2,"clinic");door(116);
+    obj(140,126,26,10,K.cream,K.creamD);          /* 診療床 */
+    px(142,116,10,12,K.cream);px(142,116,10,1,K.out);
+    px(144,136,4,11,K.metalD);px(158,136,4,11,K.metalD);
+  },
+  solids:[[138,124,30,24]],
+  props:{
+   drug:{draw:function(){
+     obj(26,24,52,42,K.cream,K.creamD);
+     px(28,38,48,2,K.creamD);px(28,50,48,2,K.creamD);
+     for(var i=0;i<4;i++){
+       px(31+i*12,28,8,8,i%2?K.leaf:K.blue);
+       px(31+i*12,42,8,6,i%2?K.gold:K.red);
+       px(31+i*12,54,8,8,i%2?K.blue:K.leaf);
+     }
+     px(28,26,48,1,K.white);
+   },zone:[24,90,56,18]},
+   steri:{draw:function(){
+     obj(192,116,30,26,K.metal,K.metalD);
+     px(194,118,26,18,"#4e5a63");
+     px(200,123,14,8,K.glass);
+     px(216,120,4,4,K.red);
+     px(196,142,22,5,K.metalD);
+   },zone:[186,148,42,16],solid:[190,112,34,34]},
+   chart:{draw:function(){
+     pic(150,30,34,26);
+     px(154,44,4,6,K.blue);px(160,40,4,10,K.blue);px(166,36,4,14,K.blue);px(172,42,4,8,K.blue);
+     px(177,36,5,14,K.paperD);px(177,36,5,1,K.red);
+   },zone:[146,90,42,18]},
+   band:{draw:function(){
+     obj(84,124,32,10,K.metal,K.metalD);
+     px(86,126,28,5,"#5c6672");
+     px(86,134,3,12,K.metalD);px(111,134,3,12,K.metalD);
+     obj(89,117,7,7,K.leaf,K.leafD);obj(98,117,7,7,K.leaf,K.leafD);
+     px(91,119,3,3,K.white);px(100,119,3,3,K.white);
+   },zone:[80,146,40,16],solid:[82,120,36,26]},
+   ledg:{draw:function(){
+     obj(40,122,38,10,K.wood,K.woodD);
+     px(42,132,4,14,K.woodD);px(72,132,4,14,K.woodD);
+     obj(50,113,20,10,K.paper,K.paperD);
+     px(52,116,16,2,K.soft);px(59,113,1,10,K.paperD);
+   },zone:[36,146,48,18],solid:[38,118,42,28]}
+  }},
+
+ office:{name:"院長室",
+  scenery:function(){
+    baseRoom(0,"office");door(116);
+    obj(40,118,76,11,K.wood,K.woodD);              /* 辦公桌 */
+    px(44,129,5,17,K.woodD);px(107,129,5,17,K.woodD);
+    px(238,130,4,16,K.leafD);                       /* 盆栽 */
+    px(232,126,12,8,K.leaf);px(242,130,10,7,K.leaf);
+    obj(236,144,16,12,K.terraB,K.terraS);
+  },
+  solids:[[38,114,80,32]],
+  props:{
+   cert:{draw:function(){
+     for(var i=0;i<3;i++){
+       pic(28+i*18,30,14,18);
+       px(31+i*18,35,8,2,K.soft);px(31+i*18,39,8,1,K.paperD);px(35+i*18,43,4,4,K.gold);
+     }
+     obj(28,52,48,12,K.paper,K.paperD);
+     px(30,54,44,8,"#7a8b93");
+     for(var j=0;j<5;j++)px(33+j*8,56,4,5,K.cream);
+   },zone:[26,90,56,18]},
+   art:{draw:function(){
+     obj(178,26,48,40,K.wood,K.woodD);
+     px(180,28,44,36,K.cream);px(180,44,44,2,K.woodD);
+     obj(186,31,10,11,K.paper,K.paperD);
+     px(188,34,2,5,K.ink);px(192,34,2,5,K.ink);
+     px(204,32,14,10,K.pink);
+     px(186,50,12,10,K.blue);px(206,50,12,10,K.gold);
+   },zone:[176,90,52,18]},
+   note:{draw:function(){
+     obj(58,109,20,10,K.redD,"#5f1f1a");
+     px(60,111,16,6,"#8d2f28");px(67,109,1,10,K.gold);
+   },zone:[38,148,76,18]},
+   index:{draw:function(){
+     obj(200,120,40,24,K.metal,K.metalD);
+     px(202,122,36,8,K.paper);px(202,132,36,8,K.paper);
+     px(216,125,8,2,K.metalD);px(216,135,8,2,K.metalD);
+   },zone:[196,148,48,16],solid:[198,116,44,32]},
+   safe:{draw:function(){
+     obj(140,124,34,22,"#3d4550","#262c34");
+     px(142,126,30,18,"#4e5a63");
+     px(158,132,7,7,K.metal);px(160,134,3,3,K.night);
+     px(146,130,7,2,K.gold);
+   },zone:[136,150,42,16],solid:[138,120,38,28]}
+  }},
+
+ popo:{name:"波波的房間",
+  scenery:function(){
+    baseRoom(0,"popo");door(116);
+    obj(170,110,54,38,K.wood,K.woodD);             /* 床 */
+    px(172,112,50,20,"#9bc2dd");px(172,132,50,14,K.cream);
+    obj(174,114,16,13,K.white,K.creamD);
+    px(94,168,12,4,K.gold);px(98,175,12,4,K.pink); /* 地上的玩具 */
+  },
+  solids:[[168,106,58,42]],
+  props:{
+   draw:{draw:function(){
+     var CC=[K.gold,K.pink,K.leaf,K.blue];
+     for(var i=0;i<4;i++){
+       var x=20+i*18,y=26+(i%2)*20;
+       obj(x,y,16,16,K.paper,K.paperD);
+       px(x+4,y+8,3,5,CC[i]);px(x+9,y+8,3,5,CC[(i+1)%4]);
+       px(x+4,y+4,8,2,CC[(i+2)%4]);
+     }
+   },zone:[16,90,80,20]},
+   doll:{draw:function(){
+     obj(56,151,12,12,K.cream,K.creamD);
+     px(57,143,3,9,K.cream);px(63,143,3,9,K.cream);
+     px(57,143,3,1,K.out);px(63,143,3,1,K.out);
+     px(58,155,2,2,K.ink);px(63,155,2,2,K.ink);px(60,158,2,1,K.pink);
+   },zone:[48,164,30,16],soft:1},
+   sched:{draw:function(){
+     pic(176,28,38,30);
+     for(var j=0;j<6;j++)px(180,33+j*4,30,2,j%2?K.blue:K.paperD);
+     px(180,33,30,2,K.red);
+   },zone:[172,90,44,18]},
+   stash:{draw:function(){
+     px(176,141,18,8,K.metalD);px(177,142,16,5,K.metal);px(180,139,10,2,K.pink);
+   },zone:[168,150,58,18]},
+   win:{draw:function(){
+     obj(220,26,30,30,K.wood,K.woodD);
+     px(222,28,26,26,"#9ec9d8");px(222,28,26,9,"#7fb0c4");
+     px(224,44,8,8,K.leafD);px(238,30,8,5,K.white);
+     px(234,28,2,26,K.woodD);px(222,40,26,2,K.woodD);
+   },zone:[218,90,32,18]}
+  }},
+
+ ward:{name:"病人房",
+  scenery:function(){
+    baseRoom(2,"ward");door(116);
+    var beds=[20,96,180];
+    for(var b=0;b<3;b++){
+      var x=beds[b];
+      obj(x,118,44,30,K.metal,K.metalD);
+      px(x+1,119,42,17,K.white);px(x+1,136,42,11,"#cfd8e4");
+      obj(x+4,121,11,11,K.white,K.creamD);
+      px(x,148,3,11,K.metalD);px(x+41,148,3,11,K.metalD);
+    }
+  },
+  solids:[[18,114,48,36],[94,114,48,36],[178,114,48,36]],
+  props:{
+   bed:{draw:function(){},zone:[18,152,48,16],soft:1},
+   menu:{draw:function(){
+     pic(30,28,50,34);
+     px(35,34,20,3,K.red);
+     for(var i=0;i<4;i++)px(35,41+i*5,38,2,i%2?K.leaf:K.paperD);
+   },zone:[28,90,54,18]},
+   hand:{draw:function(){
+     px(162,24,10,5,K.metalD);
+     pic(150,29,34,31);
+     px(154,34,26,3,K.blue);
+     for(var i=0;i<5;i++)px(154,41+i*4,26,2,K.paperD);
+   },zone:[146,90,42,18]},
+   wash:{draw:function(){
+     obj(216,24,34,40,K.cream,K.creamD);
+     px(218,26,30,36,"#7fb0c4");px(218,26,30,1,K.white);
+     px(222,30,22,5,K.white);px(222,39,22,5,K.pink);px(222,48,22,5,K.gold);
+   },zone:[212,90,38,18]},
+   log:{draw:function(){
+     obj(96,150,28,14,K.metal,K.metalD);
+     px(98,164,3,7,K.metalD);px(120,164,3,7,K.metalD);
+     obj(100,142,18,9,K.paper,K.paperD);px(108,142,1,9,K.paperD);
+   },zone:[90,168,40,12],solid:[94,146,32,22]}
+  }}
+};
+
+/* 三位角色只在關鍵標的被調查時現身 */
+var NPC={
+  doc :{name:"院長 林衛庭",spr:"doc"},
+  nur :{name:"護士長 孫儷玹",spr:"nur"},
+  popo:{name:"548 波波",spr:"popo"}
+};
+
+/* ════════ 狀態 ════════ */
+var mode="title";
+var pl={x:128,y:150,face:1,step:0,walking:false};
+var room="hall", phase=0;
+var found=[], resolved={}, unlocked={}, opened={hall:1}, hinted={};
+var myCode="", t0=0, elapsed=0, blink=0;
+var guest=null;
+
+function score(){var s=50;found.forEach(function(id){s+=CLUE[id].s;});return Math.max(0,Math.min(100,s));}
+function has(id){return found.indexOf(id)>=0;}
+function nMain(){var n=0;found.forEach(function(id){if(!CLUE[id].bonus)n++;});return n;}
+function nSkip(){var n=0;CLUES.forEach(function(c){if(!c.bonus&&resolved[c.id]&&!has(c.id))n++;});return n;}
+
+/* ════════ 推薦碼資料庫 ════════ */
+/* 20000 組五碼推薦碼，壓成 90000 位元的點陣圖（對應 10000–99999）。
+   來源試算表：docs.google.com/spreadsheets/d/1X9D1NlOeUxR00p2xZZtvG_lGJGxcrKAdxW8nKLm2uq0
+   名單更動後執行同資料夾的 update-codes.ps1 重新產生下面這串 base64。 */
+var CODEB64="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";
+var CODEBITS=(function(){
+  var bin,a,i,n;
+  try{bin=atob(CODEB64);}catch(e){return null;}
+  n=bin.length;a=new Uint8Array(n);
+  for(i=0;i<n;i++)a[i]=bin.charCodeAt(i);
+  return a;
+})();
+
+/* 線上名單（試算表第一個分頁）。抓得到就以它為準，抓不到才用上面烤進來的點陣圖。
+   這樣使用者在試算表裡加一批新碼，玩家重新整理就能用，不必重新部署。 */
+var CODELIVE=null;
+function applyCodes(text){
+  var rows=parseCSV(text);
+  if(rows.length<2)return false;
+  var list=[],seen={},i,v;
+  for(i=1;i<rows.length;i++){
+    v=(rows[i][0]||"").trim();
+    if(!/^\d{5}$/.test(v)||seen[v])continue;
+    seen[v]=1;list.push(v);
+  }
+  if(list.length<100)return false;   /* 名單明顯壞掉（或抓到登入頁）就不要用 */
+  CODELIVE={set:seen,list:list};
+  /* 玩家手上那組如果已經不在新名單裡，換一組給他 */
+  if(myCode&&myCode!==MASTER&&!seen[myCode]){
+    myCode=pickCode();
+    try{localStorage.setItem("mbh_code5",myCode);}catch(e){}
+  }
+  return true;
+}
+
+var MASTER="54080";           /* 通用預設推薦碼，刻意不在名單內 */
+function isCode(v){
+  if(!/^\d{5}$/.test(v))return false;
+  if(v===MASTER)return true;
+  if(CODELIVE)return !!CODELIVE.set[v];
+  if(!CODEBITS)return true;   /* 點陣圖壞了就不要擋人 */
+  var i=+v-10000;
+  return i>=0&&i<90000&&!!(CODEBITS[i>>3]>>(i&7)&1);
+}
+function pickCode(){         /* 從名單裡發一組給這位玩家 */
+  if(CODELIVE)return CODELIVE.list[Math.floor(Math.random()*CODELIVE.list.length)];
+  if(!CODEBITS)return String(10000+Math.floor(Math.random()*90000));
+  var i=Math.floor(Math.random()*90000),k,j;
+  for(k=0;k<90000;k++){
+    j=(i+k)%90000;
+    if(CODEBITS[j>>3]>>(j&7)&1)return String(j+10000);
+  }
+  return MASTER;
+}
+function genCode(){
+  var c;try{c=localStorage.getItem("mbh_code5");}catch(e){}
+  if(!c||c===MASTER||!isCode(c)){   /* 舊版隨機碼不在名單內，換一組 */
+    c=pickCode();
+    try{localStorage.setItem("mbh_code5",c);}catch(e){}
+  }
+  return c;
+}
+myCode=genCode();
+
+/* ════════ 輸入 ════════ */
+var held={},just={};
+function down(k){if(!held[k])just[k]=true;held[k]=true;}
+function up(k){held[k]=false;}
+Array.prototype.forEach.call(document.querySelectorAll("[data-k]"),function(el){
+  var k=el.dataset.k;el.style.touchAction="none";
+  var on=function(e){e.preventDefault();down(k);el.classList.add("on");
+    if(el.setPointerCapture&&e.pointerId!=null){try{el.setPointerCapture(e.pointerId);}catch(_){}}};
+  var off=function(e){e.preventDefault();up(k);el.classList.remove("on");};
+  el.addEventListener("pointerdown",on);
+  el.addEventListener("pointerup",off);
+  el.addEventListener("pointercancel",off);
+  el.addEventListener("lostpointercapture",off);
+  el.addEventListener("contextmenu",function(e){e.preventDefault();});
+});
+var KEY={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",
+  z:"a",Z:"a",x:"b",X:"b",Enter:"start",Shift:"select",w:"up",s:"down",a:"left",d:"right"," ":"a"};
+addEventListener("keydown",function(e){var k=KEY[e.key];if(k){e.preventDefault();down(k);}});
+addEventListener("keyup",function(e){var k=KEY[e.key];if(k)up(k);});
+
+/* ════════ 對話與選單 ════════ */
+var dlg=null,menu=null,codeUI=null,book=null,entry=null,intro=null,bt=null;
+function say(name,pages,then){dlg={name:name,pages:pages,i:0,chars:0,then:then||null};mode="dialog";}
+function openMenu(title,items,onCancel){menu={title:title,items:items,idx:0,cancel:onCancel||null};mode="menu";}
+
+/* ── 提示：角色透露某一件是加分還是扣分 ── */
+function applyHints(a){
+  if(a&&a.hints)a.hints.forEach(function(h){if(CLUE[h[0]])hinted[h[0]]=h[1];});
+}
+/* 大廳沒有人帶路，第一組提示寫在派令的備註欄裡 */
+function startGame(){
+  mode="play";t0=Date.now();
+  applyHints({hints:[["flag","+"],["board","-"]]});
+  say("派令備註",[
+    "派令背面，前一任承辦人\n用鉛筆留了兩行字。",
+    "「大廳的錦旗，寫了會好看。」\n「公佈欄那張名單——\n　上級希望你多看一眼。」"]);
+}
+
+/* ── 調查流程：先說明，再決定查不查 ── */
+function approach(id){
+  var c=CLUE[id];
+  if(has(id)){say("事證",["【"+c.n+"】\n這一項你已經記錄過了。"]);return;}
+  var pages=[c.d
+    +(hinted[id]?"\n（有人提過：這一項"+(hinted[id]==="+"?"加分":"扣分")+"。）":"")
+    +(resolved[id]?"\n（你剛才略過了它。）":"")];
+  if(c.key)pages.push("※ 關鍵標的\n一經調查，院方就會察覺，\n並把你帶往下一個區域。\n（這裡之後還能自己走回來。）");
+  say(c.key?"初步觀察　※關鍵":"初步觀察",pages,function(){
+    openMenu(c.key?"要動它嗎？":"要調查嗎？",[
+      {label:"調查",fn:function(){investigate(id);}},
+      {label:"先不查",fn:function(){skipClue(id);}}
+    ],function(){mode="play";});
+  });
+}
+function skipClue(id){
+  resolved[id]=true;mode="play";
+  say("稽查",["你把手收了回來。\n這一項不列入紀錄。"]);
+}
+function investigate(id){
+  var c=CLUE[id];
+  if(c.lock&&!unlocked[id]){
+    mode="play";
+    say("限閱",["此卷宗列為限閱，\n須經他院稽查員複核。",
+      "請輸入另一位稽查員的推薦碼。\n（你的推薦碼："+myCode+"）"],function(){
+      codeUI={digits:[0,0,0,0,0],pos:0,msg:"",then:function(ok){
+        if(ok){unlocked[id]=true;mode="play";award(id);}
+        else{mode="play";}
+      }};
+      mode="code";
+    });
+    return;
+  }
+  mode="play";award(id);
+}
+function award(id,silent){
+  var c=CLUE[id];
+  found.push(id);resolved[id]=true;
+  var sign=c.s>0?"＋":"－";
+  say("事證",[
+    "【"+c.n+"】\n"+c.t,
+    "評鑑項目："+c.cat+"\n計分："+sign+Math.abs(c.s)+" 分\n已記入稽查手冊。"
+  ],silent?null:function(){if(c.key)advance();});
+}
+
+/* ── 章節推進：只有關鍵標的會觸發 ── */
+function advance(){
+  if(phase>=PHASES.length)return;
+  var a=PHASES[phase].after;
+  if(a.battle){startBattle();return;}
+  if(a.final){
+    guest={k:"nur",x:Math.max(30,Math.min(226,pl.x+26)),y:pl.y};
+    say("護士長 孫儷玹",["「都看完了。」","「評分表，就交給你了。」"],function(){
+      guest=null;phase++;
+      openMenu("提交評分表？",[
+        {label:"確定提交",fn:function(){finish();}},
+        {label:"再看一次",fn:function(){mode="play";}}
+      ]);
+    });
+    return;
+  }
+  guest={k:a.npc,x:Math.max(30,Math.min(226,pl.x+26)),y:pl.y};
+  say(NPC[a.npc].name,a.lines,function(){
+    guest=null;phase++;room=a.go;opened[a.go]=1;applyHints(a);
+    pl.x=(room==="hall")?(HALLBACK[PHASES[phase-1].room]||128):128;
+    pl.y=(room==="hall")?114:108;
+    say("",["——　"+ROOMS[room].name+"　已解鎖　——"]);
+  });
+}
+var HALLBACK={office:34,clinic:88,popo:142,ward:208};
+
+/* ── 區域與碰撞 ── */
+/* 已經登場過的都留著：解鎖的區域可以隨時走回去補查 */
+function activeProps(){
+  var r=ROOMS[room],out=[];
+  for(var id in r.props){
+    var c=CLUE[id];
+    if(c&&c.ph<=phase)out.push({id:id,p:r.props[id]});
+  }
+  return out;
+}
+function activeZone(){
+  var i;
+  for(i=0;i<DOORS[room].length;i++){
+    var d=DOORS[room][i];
+    if(pl.x>=d.z[0]&&pl.x<=d.z[0]+d.z[2]&&pl.y>=d.z[1]&&pl.y<=d.z[1]+d.z[3])return {go:d.to};
+  }
+  var ap=activeProps();
+  for(i=0;i<ap.length;i++){
+    var q=ap[i].p.zone;
+    if(pl.x>=q[0]&&pl.x<=q[0]+q[2]&&pl.y>=q[1]&&pl.y<=q[1]+q[3])return {clue:ap[i].id};
+  }
+  return null;
+}
+var DOORS={
+  hall:[{z:[20,88,30,16],to:"office"},{z:[74,88,30,16],to:"clinic"},
+        {z:[128,88,30,16],to:"popo"},{z:[194,88,30,16],to:"ward"}],
+  office:[{z:[116,88,26,16],to:"hall"}],
+  clinic:[{z:[116,88,26,16],to:"hall"}],
+  popo:[{z:[116,88,26,16],to:"hall"}],
+  ward:[{z:[116,88,26,16],to:"hall"}]
+};
+function blocked(x,y){
+  var r=ROOMS[room],s=r.solids||[],i;
+  for(i=0;i<s.length;i++){var b=s[i];if(x>b[0]&&x<b[0]+b[2]&&y>b[1]&&y<b[1]+b[3])return true;}
+  var ap=activeProps();
+  for(i=0;i<ap.length;i++){
+    var sb=ap[i].p.solid;
+    if(sb&&x>sb[0]&&x<sb[0]+sb[2]&&y>sb[1]&&y<sb[1]+sb[3])return true;
+  }
+  return false;
+}
+
+/* ════════ 波波對戰 ════════ */
+var POSR=[
+ ["「哇——！」\n「這個我看過！我有看過！」","波波原地轉了兩圈。"],
+ ["「好漂亮喔……」\n「可以再給我看一次嗎？」"],
+ ["「這個是好的對不對？」\n「你要寫在本子上喔！」"]
+];
+var NEGR=[
+ ["「……這個我不可以看。」\n「護士長會生氣。」","波波往後退了半步。"],
+ ["「不要……」\n「我不要想起來。」"],
+ ["「你不要寫這個好不好。」\n「寫了他們就不給我糖了。」"]
+];
+var SPECIAL={
+ doll :["「那是我的兔子！」","「是一個哥哥做的。」\n「他說他也想要朋友。」"],
+ draw :["「你有看我的畫！」\n「我畫了好多好多朋友喔。」"],
+ sched:["「……那個是我的睡覺表。」","「我不想睡那麼久。」\n「睡著就沒有今天了。」"],
+ safe :["「黑黑的……」\n「看了頭會痛。」"],
+ radio:["「愛家獎券！」\n「我中過一次喔！」"],
+ band :["「這個戴起來會亮。」\n「亮綠色的時候大家會拍手。」"],
+ rule :["「秩序、效率、質疑、揚棄！」","「我背得出來！」\n「背得出來就有餅乾。」"],
+ index:["「那裡面有我嗎？」\n「……五四八有在裡面嗎？」"]
+};
+function startBattle(){
+  var pool=found.filter(function(id){return !CLUE[id].bonus;});
+  bt={stage:"intro",round:0,max:Math.min(3,pool.length),given:[],sum:0,mood:50,
+      msg:["有人從走廊衝了進來！",
+           "「那是我的兔子！」\n「……你是新來的嗎？\n　我是波波！」",
+           "「你查到什麼了？」\n「給我看好不好——」"],mi:0,mc:0,
+      pick:{idx:0}};
+  if(pool.length===0){
+    bt.msg=["有人從走廊衝了進來！",
+            "「那是我的兔子！」\n「你查到什麼了？」",
+            "你什麼都拿不出來。\n波波的耳朵垂了下來。"];
+    bt.stage="empty";
+  }
+  mode="battle";
+}
+function battlePool(){
+  return found.filter(function(id){
+    return !CLUE[id].bonus&&bt.given.indexOf(id)<0;
+  });
+}
+function btSay(pages,next){bt.msg=pages;bt.mi=0;bt.mc=0;bt.stage=next;}
+function btGive(id){
+  var c=CLUE[id];
+  bt.given.push(id);bt.sum+=c.s;
+  bt.mood=Math.max(0,Math.min(100,bt.mood+c.s*4));
+  var lines=SPECIAL[id]||(c.s>0?POSR[bt.round%POSR.length]:NEGR[bt.round%NEGR.length]);
+  var pages=["你把「"+c.n+"」給波波看。"].concat(lines);
+  bt.round++;
+  btSay(pages,"react");
+}
+function btReward(){
+  var gid = bt.sum>=6?"gift_a":(bt.sum<=-6?"gift_c":"gift_b");
+  var lead = bt.sum>=6
+    ? ["波波笑得眼睛都瞇起來了。","「你是好人耶。」\n「我也要給你一個東西。」"]
+    : (bt.sum<=-6
+      ? ["波波安靜了很久。","「……你都知道了。」\n「那我跟你說一件事，」\n「你不要跟他們講。」"]
+      : ["波波歪著頭想了一下。","「嗯——」\n「那我告訴你一件事好了。」"]);
+  bt.gid=gid;
+  btSay(lead,"reward");
+}
+/* 波波臨走前也會提示病人房的兩件 */
+var POPO_HINT=[
+  "「病房的棉被摺得超好看的！\n　你一定要寫！」",
+  "「……交班本不要看喔。」\n「上面寫的都不是真的，\n　可是他們說那樣才對。」"];
+function btEnd(){
+  var gid=bt.gid;bt=null;mode="play";
+  phase++;room=PHASES[3].after.go;opened[room]=1;pl.x=128;pl.y=108;
+  applyHints(PHASES[3].after);
+  award(gid,true);
+  dlg.then=function(){
+    say("548 波波",POPO_HINT,function(){
+      say("",["——　"+ROOMS[room].name+"　已解鎖　——"]);
+    });
+  };
+}
+
+/* ════════ 更新 ════════ */
+function update(){
+  blink++;
+  /* 對戰時音樂加速；不管對戰從哪個出口結束都會自己恢復 */
+  setBgmRate(mode==="battle"?2:1);
+  if(mode==="play")elapsed=(Date.now()-t0)/1000;
+
+  if(mode==="title"){if(booting<=0&&(just.start||just.a)){mode="intro";intro={i:0};}return;}
+
+  if(mode==="intro"){
+    if(just.a||just.start){intro.i++;if(intro.i>=INTRO.length)startGame();}
+    if(just.b&&intro.i>0)intro.i--;
+    return;
+  }
+
+  if(mode==="dialog"){
+    var pg=dlg.pages[dlg.i];
+    if(dlg.chars<pg.length)dlg.chars+=2;
+    if(just.a||just.start){
+      if(dlg.chars<pg.length)dlg.chars=pg.length;
+      else{
+        dlg.i++;
+        if(dlg.i>=dlg.pages.length){var f=dlg.then;dlg=null;mode="play";if(f)f();}
+        else dlg.chars=0;
+      }
+    }
+    return;
+  }
+
+  if(mode==="menu"){
+    if(just.up)menu.idx=(menu.idx+menu.items.length-1)%menu.items.length;
+    if(just.down)menu.idx=(menu.idx+1)%menu.items.length;
+    if(just.a){var it=menu.items[menu.idx];menu=null;it.fn();return;}
+    if(just.b){var cf=menu.cancel;menu=null;if(cf)cf();else mode=book?"book":"play";}
+    return;
+  }
+
+  if(mode==="code"){
+    if(just.left)codeUI.pos=(codeUI.pos+4)%5;
+    if(just.right)codeUI.pos=(codeUI.pos+1)%5;
+    if(just.up)codeUI.digits[codeUI.pos]=(codeUI.digits[codeUI.pos]+1)%10;
+    if(just.down)codeUI.digits[codeUI.pos]=(codeUI.digits[codeUI.pos]+9)%10;
+    if(just.b){var f2=codeUI.then;codeUI=null;f2(false);}
+    if(just.a){
+      var v=codeUI.digits.join("");
+      if(v===myCode){codeUI.msg="不可使用自己的推薦碼。";}
+      else if(!isCode(v)){codeUI.msg="查無此推薦碼，請再確認。";}
+      else{var f3=codeUI.then;codeUI=null;
+        say("複核",["推薦碼 "+v+" 複核通過。\n限閱卷宗已解鎖。"],function(){f3(true);});}
+    }
+    return;
+  }
+
+  if(mode==="book"){
+    var total=found.length+2;
+    if(just.up)book.idx=(book.idx+total-1)%total;
+    if(just.down)book.idx=(book.idx+1)%total;
+    if(just.start||just.b){book=null;mode="play";}
+    if(just.a){
+      if(book.idx<found.length){entry={i:book.idx};mode="entry";}
+      else if(book.idx===found.length){
+        openMenu("提交評分表？",[
+          {label:"確定提交",fn:function(){book=null;finish();}},
+          {label:"再看一次手冊",fn:function(){mode="book";}}
+        ]);
+      }else{book=null;mode="play";}
+    }
+    return;
+  }
+
+  if(mode==="entry"){
+    if(found.length>1){
+      if(just.left)entry.i=(entry.i+found.length-1)%found.length;
+      if(just.right)entry.i=(entry.i+1)%found.length;
+    }
+    if(just.a||just.b||just.start){book.idx=entry.i;entry=null;mode="book";}
+    return;
+  }
+
+  if(mode==="battle"){
+    if(bt.stage==="pick"){
+      var pool=battlePool();
+      if(just.up)bt.pick.idx=(bt.pick.idx+pool.length-1)%pool.length;
+      if(just.down)bt.pick.idx=(bt.pick.idx+1)%pool.length;
+      if(just.a)btGive(pool[bt.pick.idx]);
+      return;
+    }
+    var m=bt.msg[bt.mi];
+    if(bt.mc<m.length)bt.mc+=2;
+    if(just.a||just.start){
+      if(bt.mc<m.length){bt.mc=m.length;return;}
+      bt.mi++;
+      if(bt.mi<bt.msg.length){bt.mc=0;return;}
+      if(bt.stage==="intro"){bt.pick.idx=0;bt.stage="pick";return;}
+      if(bt.stage==="react"){
+        if(bt.round>=bt.max)btReward();
+        else{bt.pick.idx=0;bt.stage="pick";}
+        return;
+      }
+      if(bt.stage==="empty"){bt=null;mode="play";
+        phase++;room=PHASES[3].after.go;opened[room]=1;pl.x=128;pl.y=108;
+        applyHints(PHASES[3].after);
+        say("548 波波",POPO_HINT,function(){
+          say("",["——　"+ROOMS[room].name+"　已解鎖　——"]);
+        });return;}
+      if(bt.stage==="reward"){btEnd();return;}
+    }
+    return;
+  }
+
+  if(mode==="result"){if(just.a||just.start)location.reload();return;}
+
+  /* ── play ── */
+  if(just.start){book={idx:found.length};mode="book";return;}
+  if(just.select){say("推薦碼",["你的稽查員推薦碼：\n　　　"+myCode+
+    "\n把它給別人，別人就能\n複核他那邊的限閱卷宗。"]);return;}
+
+  var sp=(held.b?1.9:1.2),dx=0,dy=0;
+  if(held.left){dx-=sp;pl.face=-1;}
+  if(held.right){dx+=sp;pl.face=1;}
+  if(held.up)dy-=sp;
+  if(held.down)dy+=sp;
+  pl.walking=!!(dx||dy);
+  if(pl.walking)pl.step+=0.18;
+  var nx=Math.max(WALK.x0,Math.min(WALK.x1,pl.x+dx));
+  var ny=Math.max(WALK.y0,Math.min(WALK.y1,pl.y+dy));
+  if(!blocked(nx,pl.y))pl.x=nx;
+  if(!blocked(pl.x,ny))pl.y=ny;
+
+  if(just.a){
+    var z=activeZone();
+    if(z){
+      if(z.go){
+        if(!opened[z.go]){
+          say("門",["門鎖著。\n未經院方人員帶領，\n稽查員不得進入。"]);
+        }else{
+          var from=room;room=z.go;
+          if(room==="hall"){pl.x=HALLBACK[from]!==undefined?HALLBACK[from]:128;pl.y=114;}
+          else{pl.x=128;pl.y=108;}
+        }
+      }
+      else if(z.clue)approach(z.clue);
+    }
+  }
+}
+
+/* ════════ 繪製 ════════ */
+var INTRO=[
+ {h:"臺灣省衛生處",l:["稽查派令　第 059 號","","民國五十九年　冬"],c:1},
+ {h:"明日之家",l:["民國四十五年，這間病院","在山上開了門。","收治的是「昨日症候群」——","困在昨天、走不出來的人。"]},
+ {h:"燈塔療程",l:["院長林衛庭自日本金澤學成，","以「燈塔療程」治此症。","病人戴上「昨日之光」手環，","情緒會化成光，亮在手上。"]},
+ {h:"十五年",l:["十五年來，該院歷次評鑑","皆為甲等以上。","今年，他們申請列入","「模範病院」名錄。"]},
+ {h:"你的工作",l:["找出這裡值得成為模範的","地方：藥品、病歷、整潔、","美觀、得獎經歷，","以及醫護怎麼看待病人。"]},
+ {h:"稽查要領",l:["走到標的物前按 Ａ，先看","初步觀察，再決定查不查。","標示「※關鍵」的標的一經","調查，院方就會派人過來，","把你帶往下一個區域。"]},
+ {h:"加分與扣分",l:["不是每一件事都該寫。","有的事證加分，有的扣分，","一旦查了，就得記進手冊。","走過的區域隨時能回去補查。"]},
+ {h:"結局",l:["這趟稽查共有五種結果。","你會寫出哪一種？"],c:1},
+ {h:"稽查員互助辦法",l:["你的推薦碼：","","","限閱卷宗須輸入","他院稽查員的推薦碼。","查到的限閱卷宗都會加分。"],c:1},
+ {h:"操作",l:["十字鍵：走動　　Ｂ：快走","Ａ：調查","START：稽查手冊・提交","SELECT：查看推薦碼"]}
+];
+var CODE_PAGE=(function(){
+  for(var i=0;i<INTRO.length;i++)if(INTRO[i].h==="稽查員互助辦法")return i;
+  return -1;
+})();
+
+function drawTitle(){
+  px(0,0,W,H,"#9ec9d8");
+  px(0,0,W,52,"#bcd9e0");
+  px(0,86,W,18,"#6d9a86");
+  px(0,104,W,H-104,K.leaf);
+  px(110,52,32,5,K.woodD);                       /* 燈塔 */
+  obj(114,57,24,48,K.cream,K.creamD);
+  px(116,64,20,7,K.red);px(116,80,20,7,K.red);
+  px(118,92,16,11,(blink%60<40)?K.gold:"#caa94f");
+  obj(48,104,160,52,K.cream,K.creamD);           /* 主樓 */
+  px(50,106,156,9,K.red);
+  for(var r=0;r<2;r++)for(var c=0;c<9;c++){
+    var lit=((r*9+c+Math.floor(blink/40))%5===0);
+    px(60+c*16,118+r*16,10,11,lit?K.gold:"#5c6672");
+  }
+  px(0,154,W,6,K.leafD);px(0,160,W,32,"#35533a");
+  txt("模範病院稽查",128,30,K.ink,FTB,"center");
+  txt("臺灣省衛生處　病院評鑑　民國五十九年",128,46,"#3a5a66",FTS,"center");
+  if(booting>0)     txt("連線中"+"…………".slice(0,Math.floor(blink/20)%4),128,175,K.cream,FTS,"center");
+  else if(blink%64<40)txt("PRESS  START",128,176,K.gold,FTP,"center");
+  txt("《昨日病房》外傳",128,188,K.cream,FTS,"center");
+  txt("資料："+(clueSrc===codeSrc?clueSrc:"部分內建"),6,188,"#7f9e8c",FTS);
+}
+
+function drawIntro(){
+  px(0,0,W,H,K.night);
+  panel(12,14,232,164,K.cream);
+  px(20,22,216,2,K.redD);px(20,26,216,1,K.redD);
+  var pg=INTRO[intro.i];
+  txt(pg.h,128,46,K.ink,FT,"center");
+  px(84,52,88,1,K.gold);
+  var y=72,al=pg.c?"center":"left";
+  pg.l.forEach(function(s){txt(s,pg.c?128:26,y,K.soft,FT,al);y+=16;});
+  if(intro.i===CODE_PAGE)txt(myCode,128,110,K.redD,'900 18px "Press Start 2P",monospace',"center");
+  var dw=INTRO.length*9;
+  for(var i=0;i<INTRO.length;i++)px(128-dw/2+i*9,166,6,3,i===intro.i?K.red:K.creamD);
+  if(blink%50<34)txt("按 Ａ 繼續",236,174,K.soft,FTS,"right");
+}
+
+function drawHUD(){
+  px(0,0,W,17,K.night);px(0,17,W,1,K.out);
+  txt(ROOMS[room].name,6,13,K.cream,FT);
+  if(phase>=PHASES.length)txt("稽查完畢　按 START",96,13,K.gold,FTS);
+  else if(room!==PHASES[phase].room)txt("任務 → "+ROOMS[PHASES[phase].room].name,102,13,K.gold,FTS);
+  else{
+    var ids=PH_CLUES[phase]||[],dn=0;
+    ids.forEach(function(i){if(resolved[i])dn++;});
+    txt("本區 "+dn+"/"+ids.length,116,13,"#a9a3bb",FTS);
+  }
+  txt("事證",212,13,"#a9a3bb",FTS);
+  txt(String(nMain()),250,13,K.gold,FTP,"right");
+}
+
+function drawPlay(){
+  var r=ROOMS[room];
+  r.scenery();
+  activeProps().forEach(function(o){o.p.draw();});
+
+  var actors=[];
+  if(guest)actors.push({y:guest.y,f:function(){
+    sprite(NPC[guest.k].spr,guest.x,guest.y,guest.x>pl.x,0);}});
+  actors.push({y:pl.y,f:function(){
+    sprite("you",pl.x,pl.y,pl.face<0,(pl.walking&&Math.floor(pl.step)%2)?-1:0);}});
+  actors.sort(function(a,b){return a.y-b.y;}).forEach(function(o){o.f();});
+
+  var z=activeZone();
+  if(z&&mode==="play"){
+    var label;
+    if(z.go)label=(opened[z.go]?"→ ":"✕ ")+ROOMS[z.go].name+(opened[z.go]?"":"（上鎖）");
+    else{
+      var c=CLUE[z.clue];
+      label=c.n;
+      if(hinted[z.clue])label+=(hinted[z.clue]==="+"?"　＋":"　－");
+      if(c.key)label+="　※關鍵";
+      label+=has(z.clue)?"（已記錄）":(resolved[z.clue]?"（未查）":"");
+    }
+    var w=tw(label,FTS)+34;
+    var bx=Math.max(4,Math.min(W-4-w,pl.x-w/2));
+    shade(bx+2,169,w,19,.18);
+    panel(bx,167,w,19,K.cream);
+    txt(label,bx+9,180,K.ink,FTS);
+    if(blink%40<26)txt("A",bx+w-16,180,K.red,FTP);
+    if(z.clue&&!has(z.clue)){px(pl.x-1,pl.y-28,3,7,K.gold);px(pl.x-1,pl.y-19,3,3,K.gold);}
+  }
+  drawHUD();
+}
+
+function drawDialog(){
+  drawPlay();
+  var bx=6,by=106,bw=244,bh=78;
+  shade(bx+3,by+4,bw,bh,.22);
+  panel(bx,by,bw,bh,K.cream);
+  if(dlg.name){
+    var nw=tw(dlg.name,FTS)+20;
+    panel(bx+6,by-12,nw,18,K.red);
+    txt(dlg.name,bx+16,by+1,K.cream,FTS);
+  }
+  var pg=dlg.pages[dlg.i];
+  var y=by+28;
+  wrap(pg.slice(0,dlg.chars),bw-28,FT).slice(0,4).forEach(function(s){txt(s,bx+15,y,K.ink,FT);y+=15;});
+  if(dlg.chars>=pg.length&&blink%40<26)px(bx+bw-19,by+bh-15,7,7,K.red);
+}
+
+function drawMenu(){
+  if(book)drawBook();else drawPlay();
+  var items=menu.items,h=items.length*18+30,w=0;
+  items.forEach(function(i){w=Math.max(w,tw(i.label,FT));});
+  w=Math.max(w+48,tw(menu.title,FTS)+48);
+  var bx=(W-w)/2,by=H-h-14;
+  shade(bx+3,by+4,w,h,.22);
+  panel(bx,by,w,h,K.cream);
+  txt(menu.title,bx+14,by+18,K.soft,FTS);
+  px(bx+10,by+23,w-20,1,K.creamD);
+  items.forEach(function(it,i){
+    var y=by+44+i*18;
+    if(i===menu.idx){px(bx+7,y-13,w-14,16,K.gold);txt("▶",bx+11,y,K.redD,FTS);}
+    txt(it.label,bx+24,y,K.ink,FT);
+  });
+  if(!book)drawHUD();
+}
+
+function drawCode(){
+  px(0,0,W,H,K.night);
+  panel(14,26,228,140,K.cream);
+  txt("推薦碼複核",128,50,K.ink,FT,"center");
+  px(88,56,80,1,K.red);
+  txt("輸入另一位稽查員的推薦碼",128,76,K.soft,FTS,"center");
+  for(var i=0;i<5;i++){
+    var x=61+i*28;
+    panel(x,88,22,32,i===codeUI.pos?K.gold:K.white);
+    txt(String(codeUI.digits[i]),x+11,112,K.ink,'900 15px "Press Start 2P",monospace',"center");
+    if(i===codeUI.pos&&blink%40<26){px(x+7,83,8,3,K.red);px(x+7,122,8,3,K.red);}
+  }
+  txt("▲▼ 改數字　◀▶ 換位置",128,140,K.soft,FTS,"center");
+  txt("Ａ 送出　　Ｂ 放棄",128,156,K.soft,FTS,"center");
+  txt(codeUI.msg||("你的推薦碼："+myCode),128,180,codeUI.msg?"#ff9a90":K.cream,FTS,"center");
+}
+
+function drawBook(){
+  px(0,0,W,H,K.cream);
+  px(0,0,W,19,K.night);px(0,19,W,1,K.out);
+  txt("稽查手冊",6,14,K.cream,FT);
+  txt("目前評分",150,14,"#a9a3bb",FTS);
+  txt(String(score()),222,14,K.gold,FTP,"right");
+  txt("/100",250,14,"#a9a3bb",FTP,"right");
+
+  var rows=found.map(function(id){return CLUE[id];});
+  var total=rows.length+2,per=8;
+  var top=Math.max(0,Math.min(Math.max(0,total-per),book.idx-3));
+  for(var i=0;i<per;i++){
+    var k=top+i;if(k>=total)break;
+    var y=36+i*18,sel=(k===book.idx);
+    if(sel)px(4,y-13,248,17,K.gold);
+    if(k<rows.length){
+      var c=rows[k];
+      txt((c.s>0?"＋":"－")+Math.abs(c.s),10,y,c.s>0?K.leafD:K.redD,FTP);
+      txt((c.bonus?"★":"")+c.n,44,y,K.ink,FTS);
+      txt(c.cat,250,y,K.soft,FTS,"right");
+    }else if(k===rows.length)txt("▶ 提交評分表",10,y,K.redD,FT);
+    else txt("▶ 繼續稽查",10,y,K.ink,FT);
+  }
+  if(rows.length===0)txt("尚未記錄任何事證。",128,96,K.soft,FTS,"center");
+  px(0,H-17,W,17,K.night);
+  txt("▲▼ 選擇　Ａ 展開　START 返回",128,H-5,"#a9a3bb",FTS,"center");
+}
+
+function drawEntry(){
+  var c=CLUE[found[entry.i]];
+  px(0,0,W,H,K.wall);
+  px(0,0,W,19,K.night);
+  txt("事證紀錄",6,14,K.cream,FT);
+  txt((entry.i+1)+" / "+found.length,250,14,"#a9a3bb",FTS,"right");
+  shade(11,27,240,142,.18);
+  panel(8,24,240,142,K.paper);
+  txt("【"+c.n+"】",20,50,K.ink,FT);
+  px(18,57,212,1,K.red);
+  txt("項目",20,74,K.soft,FTS);txt(c.cat,52,74,K.ink,FTS);
+  txt("地點",132,74,K.soft,FTS);txt(ROOMS[c.room].name,164,74,K.ink,FTS);
+  txt("計分",20,92,K.soft,FTS);
+  txt((c.s>0?"＋":"－")+Math.abs(c.s),52,93,c.s>0?K.leafD:K.redD,'900 11px "Press Start 2P",monospace');
+  px(18,100,212,1,K.paperD);
+  var y=118;
+  wrap(c.t,208,FT).slice(0,3).forEach(function(s){txt(s,20,y,K.ink,FT);y+=16;});
+  px(0,H-17,W,17,K.night);
+  txt(found.length>1?"◀▶ 翻閱其他事證　　Ｂ 返回手冊":"Ｂ 返回手冊",128,H-5,"#a9a3bb",FTS,"center");
+}
+
+/* ── 對戰畫面 ── */
+function plat(cx,cy,w){
+  px(cx-w/2,cy,w,4,"#6d9a86");
+  px(cx-w/2+5,cy-3,w-10,3,K.leaf);
+  px(cx-w/2+3,cy+4,w-6,2,K.rail);
+}
+function drawBattle(){
+  px(0,0,W,H,"#bcd9e0");
+  px(0,0,W,88,"#d5e8ec");
+  for(var i=-6;i<20;i++)px(i*18+60,16,3,70,"#c6dde2");
+  px(0,86,W,3,"#a9cbbe");
+  px(0,89,W,H-89,K.wall);
+
+  plat(190,88,66);
+  sprite("popo",190,88,false,(blink%40<20)?-1:0,3);
+  plat(56,124,72);
+  sprite("youback",56,124,false,0,3);
+
+  panel(6,12,130,38,K.cream);
+  txt("５４８　波波",14,30,K.ink,FTS);
+  txt("心情",14,45,K.soft,FTS);
+  box(42,38,88,9,K.white,K.out);
+  px(44,40,Math.round(84*bt.mood/100),5,bt.mood>60?K.leaf:(bt.mood>30?K.gold:K.red));
+
+  var dots="";
+  for(var d=0;d<bt.max;d++)dots+=(d<bt.round?"○":"●");
+  /* 放在波波頭頂上方：他佔 y40–88，這行壓到 y34 才不會蓋到他 */
+  if(bt.max>0)txt("可給事證 "+dots,248,32,K.ink,FTS,"right");
+
+  if(bt.stage==="pick"){
+    var pool=battlePool();
+    txt("給波波看哪一件？",248,120,K.ink,FTS,"right");
+    panel(4,126,248,60,K.cream);
+    var top=Math.max(0,Math.min(Math.max(0,pool.length-3),bt.pick.idx-1));
+    for(var k=0;k<3;k++){
+      var j=top+k;if(j>=pool.length)break;
+      var c=CLUE[pool[j]],y=146+k*16;
+      if(j===bt.pick.idx){px(8,y-12,240,16,K.gold);txt("▶",11,y,K.redD,FTS);}
+      txt((c.s>0?"＋":"－")+Math.abs(c.s),26,y,c.s>0?K.leafD:K.redD,FTP);
+      txt(c.n,60,y,K.ink,FTS);
+      txt(c.cat,244,y,K.soft,FTS,"right");
+    }
+    if(pool.length>3&&blink%40<26)txt("▼",248,184,K.soft,FTS,"right");
+    return;
+  }
+
+  panel(4,126,248,60,K.cream);
+  var m=bt.msg[bt.mi],y2=148;
+  wrap(m.slice(0,bt.mc),220,FT).slice(0,3).forEach(function(s){txt(s,16,y2,K.ink,FT);y2+=16;});
+  if(bt.mc>=m.length&&blink%40<26)px(238,174,7,7,K.red);
+}
+
+/* ── 評分表 ── */
+var RESULT=null,N_END=5;
+function grade(s){
+  if(s>=90)return{i:0,g:"特　優",st:"合　格",c:["各項指標俱優，環境、藥政、","文書均臻完善，堪為表率。"]};
+  if(s>=75)return{i:1,g:"甲　等",st:"合　格",c:["管理大致完善，瑕不掩瑜，","准予列入模範病院名錄。"]};
+  if(s>=60)return{i:2,g:"乙　等",st:"有條件",c:["部分項目尚待補正，限期三","個月改善後複查始予列名。"]};
+  if(s>=45)return{i:3,g:"丙　等",st:"不合格",c:["事證顯示本院管理存疑慮，","病人處遇一節尤待說明。"]};
+  return{i:4,g:"丁　等",st:"不合格",c:["卷宗殘缺、處遇失當，情節","重大。建請上級即刻複查。"]};
+}
+function seenEndings(){try{return localStorage.getItem("mbh_end")||"";}catch(e){return "";}}
+function markEnding(i){
+  var s=seenEndings();
+  if(s.indexOf(String(i))<0){s+=String(i);try{localStorage.setItem("mbh_end",s);}catch(e){}}
+  return s;
+}
+function fmtTime(){var m=Math.floor(elapsed/60),s=Math.floor(elapsed%60);return m+" 分 "+(s<10?"0":"")+s+" 秒";}
+function finish(){
+  var s=score(),g=grade(s);
+  RESULT={s:s,g:g,n:nMain(),sk:nSkip(),seen:markEnding(g.i)};
+  mode="result";
+  var el=document.getElementById("stamp");
+  el.innerHTML="<span>"+g.st+"<b>衛生處</b></span>";
+  el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
+  document.getElementById("share").classList.add("show");
+}
+function drawResult(){
+  px(0,0,W,H,K.wall);
+  for(var g=0;g<H;g+=6)shade(0,g,W,1,.06);
+  shade(11,10,240,170,.22);
+  panel(8,6,240,170,K.paper);
+  px(14,12,228,2,K.redD);px(14,16,228,1,K.redD);
+  txt("模範病院評分表",128,38,K.ink,'900 17px "Noto Sans TC",sans-serif',"center");
+  txt("臺灣省衛生處　第 059 號",128,53,K.soft,FTS,"center");
+  px(20,60,216,1,K.paperD);
+  txt("受檢單位",22,76,K.soft,FTS);txt("明日之家",78,76,K.ink,FTS);
+  txt("稽查時間　"+fmtTime(),236,76,K.soft,FTS,"right");
+  txt("事證",22,92,K.soft,FTS);
+  txt(RESULT.n+" ／ 30　　略過 "+RESULT.sk+" 件",56,92,K.ink,FTS);
+  txt("結局",178,92,K.soft,FTS);
+  txt(RESULT.seen.length+" ／ "+N_END,206,92,K.ink,FTS);
+  for(var e=0;e<N_END;e++){
+    var on=RESULT.seen.indexOf(String(e))>=0;
+    box(178+e*12,96,9,5,on?K.gold:K.paper,K.paperD);
+  }
+  px(20,104,216,1,K.paperD);
+  txt("總　分",22,115,K.soft,FTS);
+  txt(String(RESULT.s),22,142,RESULT.s>=75?K.leafD:(RESULT.s>=60?K.goldD:K.redD),
+      '900 20px "Press Start 2P",monospace');
+  txt("／100",90,140,K.soft,FTS);
+  txt("等　第",130,115,K.soft,FTS);
+  txt(RESULT.g.g,130,140,K.ink,'900 15px "Noto Sans TC",sans-serif');
+  px(20,148,140,1,K.paperD);
+  txt(RESULT.g.c[0],22,162,K.ink,FTS);
+  txt(RESULT.g.c[1],22,174,K.ink,FTS);
+  if(RESULT.n>=30)txt("＊你看見的，比他們願意給你看的多。",128,188,K.cream,FTS,"center");
+  else if(blink%60<40)txt("按 Ａ 重新稽查",128,188,K.cream,FTS,"center");
+}
+
+/* ════════ 主迴圈 ════════ */
+function frame(){
+  try{draw();}catch(err){
+    px(0,0,W,H,K.night);
+    txt("稽查機故障",128,90,K.cream,FT,"center");
+    txt(String(err&&err.message||err).slice(0,40),128,110,"#ff9a90",FTS,"center");
+  }
+  requestAnimationFrame(frame);
+}
+function draw(){
+  update();
+  px(0,0,W,H,K.night);
+  if(mode==="title")drawTitle();
+  else if(mode==="intro")drawIntro();
+  else if(mode==="dialog")drawDialog();
+  else if(mode==="menu")drawMenu();
+  else if(mode==="code")drawCode();
+  else if(mode==="book")drawBook();
+  else if(mode==="entry")drawEntry();
+  else if(mode==="battle")drawBattle();
+  else if(mode==="result")drawResult();
+  else drawPlay();
+  just={};
+}
+
+/* 分享 */
+document.getElementById("share").addEventListener("click",function(){
+  if(!RESULT)return;
+  var t="【模範病院評分表】明日之家\n總分 "+RESULT.s+"／100　等第 "+RESULT.g.g.replace(/\s/g,"")
+    +"\n判定："+RESULT.g.st.replace(/\s/g,"")+"　事證 "+RESULT.n+"/30（略過 "+RESULT.sk+"）"
+    +"\n已體驗結局 "+RESULT.seen.length+"／"+N_END
+    +"\n我的稽查員推薦碼："+myCode+"\n——《昨日病房》外傳・模範病院稽查";
+  var done=function(){var b=document.getElementById("share");b.textContent="已複製";setTimeout(function(){b.textContent="分享稽查結果";},1800);};
+  if(navigator.share)navigator.share({text:t}).catch(function(){});
+  else if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,function(){});
+});
+
+/* ════════ 背景音樂 ════════ */
+/* 瀏覽器不准無使用者動作就出聲，所以綁在第一次按鍵或觸碰（標題畫面一定會按） */
+var bgm=document.getElementById("bgm"),muteBtn=document.getElementById("mute");
+var muted=false;
+try{muted=localStorage.getItem("mbh_mute")==="1";}catch(e){}
+bgm.volume=.55;bgm.muted=muted;
+function paintMute(){
+  muteBtn.setAttribute("aria-pressed",muted?"true":"false");
+  muteBtn.textContent=muted?"♪ 靜音":"♪ 音樂";
+}
+function startBgm(){
+  if(!bgm.paused)return;
+  var p=bgm.play();
+  if(p&&p["catch"])p["catch"](function(){});
+}
+/* 對戰時轉 2 倍速。關掉變調補償，讓它像卡帶快轉一樣連音高一起上去 */
+var bgmRate=1;
+function setBgmRate(r){
+  if(!bgm||bgmRate===r)return;
+  bgmRate=r;
+  try{
+    bgm.preservesPitch=false;
+    bgm.mozPreservesPitch=false;
+    bgm.webkitPreservesPitch=false;
+    bgm.playbackRate=r;
+  }catch(e){}
+}
+paintMute();
+addEventListener("pointerdown",startBgm,true);
+addEventListener("keydown",startBgm,true);
+muteBtn.addEventListener("click",function(e){
+  e.stopPropagation();
+  muted=!muted;bgm.muted=muted;
+  try{localStorage.setItem("mbh_mute",muted?"1":"0");}catch(_){}
+  paintMute();startBgm();
+});
+
+/* 熱更新 */
+try{
+  if(window.claude&&window.claude.hot){
+    window.claude.hot.snapshot(function(){
+      return {room:room,phase:phase,found:found,resolved:resolved,unlocked:unlocked,
+              opened:opened,hinted:hinted,x:pl.x,y:pl.y,code:myCode,t0:t0,
+              started:(mode!=="title"&&mode!=="intro")};
+    });
+  }
+}catch(e){}
+function boot(d){
+  if(d&&d.found){
+    found=d.found;resolved=d.resolved||{};unlocked=d.unlocked||{};
+    opened=d.opened||{hall:1};opened.hall=1;hinted=d.hinted||{};
+    room=d.room||"hall";phase=d.phase||0;
+    pl.x=d.x||128;pl.y=d.y||150;myCode=d.code||myCode;t0=d.t0||Date.now();
+    mode=d.started?"play":"title";
+  }
+  requestAnimationFrame(frame);
+}
+try{
+  if(window.claude&&window.claude.hot&&window.claude.hot.ready)window.claude.hot.ready(boot);
+  else boot((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+}catch(e){boot({});}
+})();
+</script>
+
+</body></html>
