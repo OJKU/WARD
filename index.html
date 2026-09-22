@@ -177,6 +177,39 @@
   .snd:active{background:rgba(255,255,255,.6);}
   .foot .cap{flex:1;text-align:center;}
   .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
+  .foot.done .cap{display:none;}
+
+  /* ── 結尾的聯絡方式表單：蓋在螢幕上的真 HTML 表單 ── */
+  .over{
+    position:absolute;inset:0;z-index:6;
+    background:linear-gradient(180deg,#efe7d4,#e2d8c0);
+    color:#2a281f;
+    display:flex;align-items:center;justify-content:center;
+    padding:10px;box-sizing:border-box;overflow:auto;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    -webkit-user-select:auto;user-select:auto;
+  }
+  .over form{width:100%;max-width:330px;display:flex;flex-direction:column;gap:5px;}
+  .over h3{margin:0;font-size:15px;letter-spacing:.16em;text-align:center;font-weight:900;}
+  .over .why{margin:0;font-size:11px;line-height:1.5;opacity:.72;text-align:center;}
+  .over label{display:flex;flex-direction:column;gap:2px;font-size:11px;opacity:.8;}
+  /* 字級一定要 16px：低於 16px 時 iOS Safari 會在聚焦輸入框時自動放大整頁 */
+  .over input[type=email],.over input[type=text]{
+    font:16px/1.2 inherit;padding:6px 8px;width:100%;box-sizing:border-box;
+    border:1px solid #9c937c;border-radius:3px;background:#fbf7ec;color:#2a281f;
+  }
+  .over .ck{flex-direction:row;align-items:center;gap:6px;font-size:11px;opacity:.9;}
+  .over .ck input{width:16px;height:16px;flex:0 0 auto;margin:0;}
+  .over .err{margin:0;min-height:13px;font-size:11px;color:#9c2f28;text-align:center;}
+  .over .row{display:flex;gap:8px;margin-top:2px;}
+  .over .row button{
+    flex:1;font:700 13px inherit;padding:7px 0;border-radius:3px;cursor:pointer;
+    border:1px solid #9c937c;background:#fbf7ec;color:#2a281f;
+  }
+  .over .row #send{background:var(--plate);border-color:#6d231d;color:#f3e7dc;}
+  .over .row button:active{filter:brightness(.92);}
+  .over .thanks{text-align:center;font-size:13px;line-height:1.7;}
+  .over .thanks b{display:block;font-size:15px;letter-spacing:.16em;margin-bottom:6px;}
 
   /* ════════ 橫拿手機：整台變成 GBA 造型的橫式掌機（機身 16:8） ════════
      方向鍵在左、螢幕置中、AB 在右、START／SELECT 在左下、喇叭孔在右下。
@@ -260,6 +293,30 @@
       <canvas id="cv" width="256" height="192" aria-label="模範病院稽查遊戲畫面"></canvas>
       <div class="scan"></div>
       <div class="stamp" id="stamp"></div>
+
+      <!-- 結尾的聯絡方式表單。蓋在螢幕上，用真的 input 才能叫得出手機鍵盤與自動填入。 -->
+      <div class="over" id="sub" hidden>
+        <form id="subf" novalidate>
+          <h3>稽查員名冊</h3>
+          <p class="why">留下 email，《昨日病房》有新場次或優惠時通知你。<br>只用於本劇的演出資訊，不會提供給第三方。</p>
+          <label>Email
+            <input id="em" type="email" inputmode="email" autocomplete="email"
+                   placeholder="you@example.com" spellcheck="false">
+          </label>
+          <label>稱呼（可不填）
+            <input id="nm" type="text" autocomplete="nickname" maxlength="20" placeholder="怎麼稱呼你">
+          </label>
+          <label class="ck">
+            <input id="ok" type="checkbox">
+            <span>我願意收到《昨日病房》的演出資訊</span>
+          </label>
+          <p class="err" id="er" role="alert"></p>
+          <div class="row">
+            <button type="button" id="skip">稍後再說</button>
+            <button type="submit" id="send">送出</button>
+          </div>
+        </form>
+      </div>
     </div>
     <span class="mark">MEIHAN&nbsp;OPTICAL&nbsp;LCD</span>
     <span class="led"></span>
@@ -293,7 +350,8 @@
   <div class="foot">
     <button class="snd" id="mute" aria-pressed="false" aria-label="背景音樂開關">♪ 音樂</button>
     <span class="cap">《昨日病房》外傳</span>
-    <button class="share" id="share">分享稽查結果</button>
+    <button class="share" id="mail">留 email</button>
+    <button class="share" id="share">分享圖片</button>
   </div>
 </div>
 
@@ -363,6 +421,8 @@ function wrap(s,max,f){
   }
   if(cur||!out.length)out.push(cur);return out;
 }
+/* 暫時把所有繪圖函式導到另一張畫布上（分享圖就是靠這個重用整套像素繪圖工具） */
+function withCtx(c,fn){var old=ctx;ctx=c;try{fn();}finally{ctx=old;}}
 
 /* ════════ 人物像素圖 ════════ */
 /* 大頭小身、深色描邊，12×16。色號：
@@ -533,6 +593,24 @@ var SHEET_CSV=SHEET_BASE+"&gid=379836711";   /* 線索資料庫分頁 */
 var CODES_CSV=SHEET_BASE;                    /* 第一個分頁＝推薦碼名單 */
 var clueSrc="內建", codeSrc="內建";
 var booting=2;                               /* 兩份資料都回來（或逾時）才放行 */
+
+/* ════════ 結尾的聯絡方式表單（Google 表單）════════ */
+/* 玩家在遊戲裡填，我們用 no-cors POST 直接送到 Google 表單，回覆會自動進試算表。
+   玩家不會離開頁面，也看不到 Google 的畫面。
+   FORM 還是 null 的時候，結尾那顆「留 email」按鈕不會出現——所以沒設定也能安全上線。
+   要啟用：把下面整個 FORM 換成實際的 action 與各欄位的 entry 編號即可。 */
+var FORM=null;
+/* 設定範例：
+var FORM={
+  action:"https://docs.google.com/forms/d/e/<表單ID>/formResponse",
+  email :"entry.1111111111",
+  name  :"entry.2222222222",
+  ok    :"entry.3333333333",
+  score :"entry.4444444444",
+  grade :"entry.5555555555",
+  code  :"entry.6666666666"
+};
+*/
 
 function parseCSV(text){
   var rows=[],row=[],cur="",q=false,i,ch;
@@ -1069,7 +1147,15 @@ myCode=genCode();
 
 /* ════════ 輸入 ════════ */
 var held={},just={};
-function down(k){if(!held[k])just[k]=true;held[k]=true;}
+/* 結尾表單打開時要完全關掉遊戲輸入：不然玩家在輸入框打字，
+   w/a/s/d/z/x 會被當成方向鍵與 ＡＢ，而且 preventDefault 會讓字根本打不進去。 */
+var formOpen=false;
+function typing(e){
+  if(formOpen)return true;
+  var t=e&&e.target,n=t&&t.nodeName;
+  return n==="INPUT"||n==="TEXTAREA"||n==="SELECT"||(t&&t.isContentEditable);
+}
+function down(k){if(formOpen)return;if(!held[k])just[k]=true;held[k]=true;}
 function up(k){held[k]=false;}
 Array.prototype.forEach.call(document.querySelectorAll("[data-k]"),function(el){
   var k=el.dataset.k;el.style.touchAction="none";
@@ -1084,8 +1170,8 @@ Array.prototype.forEach.call(document.querySelectorAll("[data-k]"),function(el){
 });
 var KEY={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",
   z:"a",Z:"a",x:"b",X:"b",Enter:"start",Shift:"select",w:"up",s:"down",a:"left",d:"right"," ":"a"};
-addEventListener("keydown",function(e){var k=KEY[e.key];if(k){e.preventDefault();down(k);}});
-addEventListener("keyup",function(e){var k=KEY[e.key];if(k)up(k);});
+addEventListener("keydown",function(e){if(typing(e))return;var k=KEY[e.key];if(k){e.preventDefault();down(k);}});
+addEventListener("keyup",function(e){if(typing(e))return;var k=KEY[e.key];if(k)up(k);});
 
 /* ════════ 對話與選單 ════════ */
 var dlg=null,menu=null,codeUI=null,book=null,entry=null,intro=null,bt=null;
@@ -1741,6 +1827,9 @@ function finish(){
   el.innerHTML="<span>"+g.st+"<b>衛生處</b></span>";
   el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
   document.getElementById("share").classList.add("show");
+  /* 表單還沒設定、或這台裝置已經登記過，就不要再擋著版面 */
+  if(FORM&&!mailSent())document.getElementById("mail").classList.add("show");
+  document.getElementById("share").parentNode.classList.add("done");
 }
 function drawResult(){
   px(0,0,W,H,K.wall);
@@ -1771,8 +1860,10 @@ function drawResult(){
   px(20,148,140,1,K.paperD);
   txt(RESULT.g.c[0],22,162,K.ink,FTS);
   txt(RESULT.g.c[1],22,174,K.ink,FTS);
-  if(RESULT.n>=30)txt("＊你看見的，比他們願意給你看的多。",128,188,K.cream,FTS,"center");
-  else if(blink%60<40)txt("按 Ａ 重新稽查",128,188,K.cream,FTS,"center");
+  /* 底下輪播提示：不講的話玩家會直接按 Ａ 重來，沒注意到機身下緣的兩顆按鈕 */
+  var hints=[FORM?"↓ 可分享圖片、留下聯絡方式":"↓ 可把評分表存成圖片分享","按 Ａ 重新稽查"];
+  if(RESULT.n>=30)hints.push("＊你看見的，比他們願意給你看的多。");
+  txt(hints[Math.floor(blink/140)%hints.length],128,188,K.cream,FTS,"center");
 }
 
 /* ════════ 主迴圈 ════════ */
@@ -1800,16 +1891,167 @@ function draw(){
   just={};
 }
 
-/* 分享 */
+/* ════════ 分享圖（9:16，給 IG 限動）════════ */
+/* 在 270×480 的小畫布上用遊戲原本那套像素繪圖工具畫，再用 imageSmoothingEnabled=false
+   放大四倍成 1080×1920，就是一張邊緣銳利的像素風限動圖。 */
+var GAME_URL="https://ojku.github.io/WARD/";
+
+function stamp(cx,cy,r,txt1,txt2){
+  ctx.save();
+  ctx.translate(cx,cy);ctx.rotate(-13*Math.PI/180);
+  ctx.strokeStyle=K.redD;ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,0,r-5,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=K.redD;ctx.textAlign="center";ctx.textBaseline="alphabetic";
+  ctx.font='900 17px "Noto Sans TC",sans-serif';ctx.fillText(txt1,0,2);
+  ctx.font='700 9px "Noto Sans TC",sans-serif';ctx.fillText(txt2,0,16);
+  ctx.textAlign="left";
+  ctx.restore();
+}
+
+function drawShareCard(){
+  var R=RESULT;
+  px(0,0,270,480,K.night);
+  panel(10,14,250,452,K.paper);
+  px(18,24,234,2,K.redD);px(18,29,234,1,K.redD);
+
+  txt("模範病院評分表",135,58,K.ink,'900 21px "Noto Sans TC",sans-serif',"center");
+  txt("臺灣省衛生處　病院評鑑　民國五十九年",135,76,K.soft,FTS,"center");
+  px(22,88,226,1,K.paperD);
+
+  txt("受檢單位",24,108,K.soft,FTS);txt("明日之家",84,108,K.ink,FT);
+  txt("稽查時間",24,128,K.soft,FTS);txt(fmtTime(),84,128,K.ink,FTS);
+  px(22,140,226,1,K.paperD);
+
+  txt("總　分",24,162,K.soft,FTS);
+  txt(String(R.s),24,200,R.s>=75?K.leafD:(R.s>=60?K.goldD:K.redD),
+      '900 30px "Press Start 2P",monospace');
+  txt("／100",120,196,K.soft,FTS);
+  txt("等　第",24,226,K.soft,FTS);
+  txt(R.g.g,72,227,K.ink,'900 16px "Noto Sans TC",sans-serif');
+  stamp(206,190,34,R.g.st.replace(/\s/g,""),"衛生處");
+  px(22,240,226,1,K.paperD);
+
+  txt("事　證",24,262,K.soft,FTS);
+  txt(R.n+" ／ 30　略過 "+R.sk+" 件",72,262,K.ink,FTS);
+  txt("結　局",24,282,K.soft,FTS);
+  txt(R.seen.length+" ／ "+N_END,72,282,K.ink,FTS);
+  for(var e=0;e<N_END;e++)
+    box(118+e*15,275,11,7,R.seen.indexOf(String(e))>=0?K.gold:K.paper,K.paperD);
+  px(22,294,226,1,K.paperD);
+
+  txt("評　語",24,314,K.soft,FTS);
+  txt(R.g.c[0],24,334,K.ink,FTS);
+  txt(R.g.c[1],24,350,K.ink,FTS);
+  if(R.n>=30)txt("＊你看見的，比他們願意給你看的多。",24,368,K.redD,FTS);
+
+  /* 推薦碼：病毒行銷的鉤子，要最顯眼 */
+  for(var d=22;d<248;d+=6)px(d,376,3,1,K.paperD);
+  txt("稽查員推薦碼",135,394,K.soft,FTS,"center");
+  txt(myCode,135,422,K.redD,'900 26px "Press Start 2P",monospace',"center");
+  txt("把這組碼給下一位稽查員，他才解得開限閱卷宗。",135,438,K.soft,FTS,"center");
+  txt("《昨日病房》外傳・模範病院稽查",135,456,K.ink,FTS,"center");
+
+  /* 紙面外的暗色邊條：限動的圖常常脫離文字被轉傳，網址一定要印在圖上 */
+  txt("ojku.github.io/WARD",135,475,K.cream,FTS,"center");
+}
+
+function buildShare(cb){
+  var SW=270,SH=480,SC=4;
+  var a=document.createElement("canvas");a.width=SW;a.height=SH;
+  var actx=a.getContext("2d");actx.imageSmoothingEnabled=false;
+  withCtx(actx,drawShareCard);
+  var b=document.createElement("canvas");b.width=SW*SC;b.height=SH*SC;
+  var bctx=b.getContext("2d");bctx.imageSmoothingEnabled=false;
+  bctx.drawImage(a,0,0,b.width,b.height);
+  if(b.toBlob)b.toBlob(function(blob){cb(blob,b);},"image/png");
+  else cb(null,b);
+}
+
+function flash(el,msg,back){
+  var old=el.textContent;el.textContent=msg;
+  setTimeout(function(){el.textContent=back||old;},2000);
+}
+
 document.getElementById("share").addEventListener("click",function(){
   if(!RESULT)return;
-  var t="【模範病院評分表】明日之家\n總分 "+RESULT.s+"／100　等第 "+RESULT.g.g.replace(/\s/g,"")
-    +"\n判定："+RESULT.g.st.replace(/\s/g,"")+"　事證 "+RESULT.n+"/30（略過 "+RESULT.sk+"）"
-    +"\n已體驗結局 "+RESULT.seen.length+"／"+N_END
-    +"\n我的稽查員推薦碼："+myCode+"\n——《昨日病房》外傳・模範病院稽查";
-  var done=function(){var b=document.getElementById("share");b.textContent="已複製";setTimeout(function(){b.textContent="分享稽查結果";},1800);};
-  if(navigator.share)navigator.share({text:t}).catch(function(){});
-  else if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,function(){});
+  var btn=this;
+  btn.textContent="製作中…";
+  var msg="我在明日之家的稽查結果："+RESULT.s+"／100，"+RESULT.g.g.replace(/\s/g,"")
+    +"。\n我的稽查員推薦碼 "+myCode+"（下一位稽查員用得到）\n"
+    +"《昨日病房》外傳・模範病院稽查\n"+GAME_URL;
+  buildShare(function(blob,cv){
+    var file=null;
+    try{ if(blob)file=new File([blob],"模範病院評分表.png",{type:"image/png"}); }catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+      var p=navigator.share({files:[file],text:msg});
+      if(p&&p["catch"])p["catch"](function(){});
+      btn.textContent="分享圖片";
+      return;
+    }
+    /* 不支援檔案分享（多半是桌機）就直接存檔 */
+    try{
+      var a=document.createElement("a");
+      a.href=cv.toDataURL("image/png");
+      a.download="模範病院評分表.png";
+      document.body.appendChild(a);a.click();a.remove();
+      flash(btn,"已存圖","分享圖片");
+    }catch(e){ flash(btn,"存圖失敗","分享圖片"); }
+  });
+});
+
+/* ════════ 結尾的聯絡方式表單 ════════ */
+var subBox=document.getElementById("sub"),
+    subForm=document.getElementById("subf"),
+    inEmail=document.getElementById("em"),
+    inName=document.getElementById("nm"),
+    inOk=document.getElementById("ok"),
+    errBox=document.getElementById("er"),
+    mailBtn=document.getElementById("mail");
+
+function mailSent(){try{return localStorage.getItem("mbh_mail")==="1";}catch(e){return false;}}
+function openForm(){
+  formOpen=true;held={};just={};
+  subBox.hidden=false;errBox.textContent="";
+  setTimeout(function(){try{inEmail.focus();}catch(e){}},50);
+}
+function closeForm(){formOpen=false;held={};just={};subBox.hidden=true;}
+
+document.getElementById("skip").addEventListener("click",closeForm);
+mailBtn.addEventListener("click",openForm);
+
+subForm.addEventListener("submit",function(e){
+  e.preventDefault();
+  var em=(inEmail.value||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){
+    errBox.textContent="請填一個看起來正常的 email。";
+    try{inEmail.focus();}catch(_){}
+    return;
+  }
+  if(!FORM){errBox.textContent="名冊尚未開放，晚點再試。";return;}
+  var send=document.getElementById("send");
+  send.disabled=true;send.textContent="送出中…";
+
+  var body=new URLSearchParams();
+  body.append(FORM.email,em);
+  if(FORM.name) body.append(FORM.name,(inName.value||"").trim());
+  if(FORM.ok)   body.append(FORM.ok,inOk.checked?"是":"否");
+  if(FORM.score)body.append(FORM.score,String(RESULT?RESULT.s:""));
+  if(FORM.grade)body.append(FORM.grade,RESULT?RESULT.g.g.replace(/\s/g,""):"");
+  if(FORM.code) body.append(FORM.code,myCode);
+
+  /* no-cors：送得出去但讀不到結果，所以一律當成成功。
+     Google 表單不送 CORS 標頭，這是唯一能在沒有後端的情況下投件的方式。 */
+  fetch(FORM.action,{method:"POST",mode:"no-cors",body:body})["catch"](function(){});
+  try{localStorage.setItem("mbh_mail","1");}catch(_){}
+  setTimeout(function(){
+    subForm.innerHTML='<p class="thanks"><b>已登記</b>'
+      +'謝謝你，稽查員。<br>《昨日病房》有新消息時會寄給你。</p>'
+      +'<div class="row"><button type="button" id="close2">回到評分表</button></div>';
+    document.getElementById("close2").addEventListener("click",closeForm);
+    mailBtn.classList.remove("show");
+  },400);
 });
 
 /* ════════ 背景音樂 ════════ */
