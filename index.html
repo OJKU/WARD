@@ -599,18 +599,18 @@ var booting=2;                               /* 兩份資料都回來（或逾�
    玩家不會離開頁面，也看不到 Google 的畫面。
    FORM 還是 null 的時候，結尾那顆「留 email」按鈕不會出現——所以沒設定也能安全上線。
    要啟用：把下面整個 FORM 換成實際的 action 與各欄位的 entry 編號即可。 */
-var FORM=null;
-/* 設定範例：
 var FORM={
-  action:"https://docs.google.com/forms/d/e/<表單ID>/formResponse",
-  email :"entry.1111111111",
-  name  :"entry.2222222222",
-  ok    :"entry.3333333333",
-  score :"entry.4444444444",
-  grade :"entry.5555555555",
-  code  :"entry.6666666666"
+  action:"https://docs.google.com/forms/d/e/1FAIpQLSfQGh2eF6TFfDJiAVSyXEdxkLW3CAHY2dswwTL1wrERk_thAw/formResponse",
+  email :"entry.777437034",    /* Email */
+  name  :"entry.1768483620",   /* 稱呼 */
+  ok    :"entry.205425733",    /* 願意收到演出資訊 */
+  score :"entry.1952985650",   /* 分數 */
+  grade :"entry.1807080915",   /* 等第 */
+  code  :"entry.2052191918"    /* 推薦碼 */
 };
-*/
+/* 表單若重建，欄位編號會全部改變：重新抓一次 viewform 頁面，
+   從 FB_PUBLIC_LOAD_DATA_ 的 data[1][1] 逐題取 it[4][0][0] 就是 entry 編號。
+   另外表單設定裡的「收集電子郵件地址」一定要保持關閉，否則會強制登入、投件失敗。 */
 
 function parseCSV(text){
   var rows=[],row=[],cur="",q=false,i,ch;
