@@ -121,7 +121,8 @@
   /* 機身變窄了，按鍵的 cqw 一併調大，實際按起來的大小跟原本一樣；
      padding 加寬則是再把方向鍵往內推，遠離手勢感應區。 */
   .pad{display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 2cqw;}
-  .dpad{display:grid;grid-template-columns:repeat(3,12.5cqw);grid-template-rows:repeat(3,12.5cqw);}
+  /* max() 是實體下限：小螢幕手機上 cqw 算出來會小到不好按，至少要撐住 34／44px */
+  .dpad{display:grid;grid-template-columns:repeat(3,max(12.5cqw,34px));grid-template-rows:repeat(3,max(12.5cqw,34px));}
   .key{
     border:0;padding:0;margin:0;touch-action:none;cursor:pointer;
     background:linear-gradient(170deg,#4d5049,#2b2d28);
@@ -129,7 +130,7 @@
     box-shadow:0 2px 0 var(--btn-lo),0 3px 5px rgba(0,0,0,.35);
   }
   .key.on{transform:translateY(2px);box-shadow:0 0 0 var(--btn-lo),0 1px 3px rgba(0,0,0,.4);filter:brightness(1.2);}
-  .dpad .key{width:12.5cqw;height:12.5cqw;}
+  .dpad .key{width:max(12.5cqw,34px);height:max(12.5cqw,34px);}
   .dpad .u{grid-area:1/2;border-radius:1.6cqw 1.6cqw 0 0;}
   .dpad .l{grid-area:2/1;border-radius:1.6cqw 0 0 1.6cqw;}
   .dpad .c{grid-area:2/2;background:#3a3d37;box-shadow:inset 0 0 4px rgba(0,0,0,.6);}
@@ -137,7 +138,7 @@
   .dpad .d{grid-area:3/2;border-radius:0 0 1.6cqw 1.6cqw;}
 
   .ab{display:flex;align-items:center;gap:3.6cqw;transform:rotate(-16deg);}
-  .round{width:16cqw;height:16cqw;border-radius:50%;font-size:4.6cqw;font-weight:900;font-family:"Press Start 2P",monospace;}
+  .round{width:max(16cqw,44px);height:max(16cqw,44px);border-radius:50%;font-size:4.6cqw;font-weight:900;font-family:"Press Start 2P",monospace;}
   .round.a{background:linear-gradient(170deg,#9c4741,var(--btn-a));color:#f0dcd6;box-shadow:0 3px 0 #4e211e,0 4px 7px rgba(0,0,0,.4);}
   .round.b{background:linear-gradient(170deg,#5c605a,var(--btn-b));color:#dcd9cf;box-shadow:0 3px 0 #2a2c28,0 4px 7px rgba(0,0,0,.4);}
   .round.on{transform:translateY(3px);}
@@ -176,6 +177,75 @@
   .snd:active{background:rgba(255,255,255,.6);}
   .foot .cap{flex:1;text-align:center;}
   .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
+
+  /* ════════ 橫拿手機：整台變成 GBA 造型的橫式掌機（機身 16:8） ════════
+     方向鍵在左、螢幕置中、AB 在右、START／SELECT 在左下、喇叭孔在右下。
+     限定 max-height:600px，這樣只有手機橫放會變身；桌機與平板仍是直式 GAMEBOY。
+     機身比例固定 16:8，所以 1cqh 正好等於 0.5cqw，下面的尺寸都用 cqw 寫，
+     不必改成 container-type:size（避免相容性風險）。 */
+  @media (orientation:landscape) and (max-height:600px){
+    body{
+      padding:6px 20px;
+      padding:6px max(clamp(20px,4vw,40px),env(safe-area-inset-right,0px))
+              6px max(clamp(20px,4vw,40px),env(safe-area-inset-left,0px));
+    }
+    .cab{
+      width:min(100%,900px,calc((100vh - 16px) * 2));
+      width:min(100%,900px,calc((100svh - 16px) * 2));
+      aspect-ratio:16/8;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      grid-template-rows:auto 1fr auto auto;
+      /* 螢幕跨第二、三列，把整片中央的高度都吃下來 */
+      grid-template-areas:
+        "plate  plate   plate"
+        "dpad   screen  ab"
+        "sys    screen  grille"
+        "foot   foot    foot";
+      align-items:center;
+      gap:0.8cqw 1.6cqw;
+      padding:1.6cqw 2.4cqw 1.8cqw;
+      border-radius:6cqw/13cqw;
+    }
+    /* 直式的包裝層在橫式用不到，讓它的小孩直接變成 grid 項目 */
+    .ctrl,.pad{display:contents;}
+    .silk{display:none;}
+
+    .plate{grid-area:plate;font-size:1.3cqw;gap:1cqw;}
+    .plate .tag{padding:.3cqw .8cqw;}
+
+    .screenbox{
+      grid-area:screen;align-self:stretch;justify-self:center;
+      display:grid;place-items:center;
+      padding:1.6cqw 1.8cqw 2.8cqw;
+      border-radius:1.4cqw 1.4cqw 3cqw 1.4cqw;
+    }
+    .screen{height:100%;width:auto;aspect-ratio:4/3;}
+    .screenbox .mark{left:1.9cqw;bottom:.7cqw;font-size:1cqw;}
+    .screenbox .led{right:1.9cqw;bottom:.85cqw;width:.8cqw;height:.8cqw;}
+
+    .dpad{grid-area:dpad;justify-self:center;
+      grid-template-columns:repeat(3,max(5.6cqw,34px));grid-template-rows:repeat(3,max(5.6cqw,34px));}
+    .dpad .key{width:max(5.6cqw,34px);height:max(5.6cqw,34px);}
+    .key{font-size:1.6cqw;}
+    .dpad .u{border-radius:.8cqw .8cqw 0 0;}
+    .dpad .l{border-radius:.8cqw 0 0 .8cqw;}
+    .dpad .r{border-radius:0 .8cqw .8cqw 0;}
+    .dpad .d{border-radius:0 0 .8cqw .8cqw;}
+
+    .ab{grid-area:ab;justify-self:center;gap:1.8cqw;transform:rotate(-10deg);}
+    .round{width:max(7.2cqw,44px);height:max(7.2cqw,44px);font-size:2.1cqw;}
+    .ab .b{margin-top:2.4cqw;}
+
+    .sys{grid-area:sys;flex-direction:column;align-items:center;gap:.7cqw;}
+    .pill{width:9cqw;height:2.2cqw;border-radius:1.3cqw;font-size:1.1cqw;transform:rotate(-10deg);}
+
+    .grille{grid-area:grille;padding-right:1cqw;gap:1.1cqw;transform:rotate(-20deg);}
+    .grille i{width:.75cqw;height:4cqw;border-radius:.5cqw;}
+
+    .foot{grid-area:foot;font-size:1.2cqw;min-height:0;}
+    .share,.snd{font-size:1.2cqw;padding:.5cqw 1.2cqw;}
+  }
 </style>
 
 <div class="cab">
