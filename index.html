@@ -1019,7 +1019,23 @@ addEventListener("keyup",function(e){var k=KEY[e.key];if(k)up(k);});
 
 /* ════════ 對話與選單 ════════ */
 var dlg=null,menu=null,codeUI=null,book=null,entry=null,intro=null,bt=null;
-function say(name,pages,then){dlg={name:name,pages:pages,i:0,chars:0,then:then||null};mode="dialog";}
+/* 對話框一次只畫得下 4 行，超過的部分以前會被默默截掉（「四大守則牌」的第四句
+   「揚棄幫助我們成就自己。」就是這樣不見的）。線索文字現在是使用者自己在試算表裡
+   寫的，長度不可控，所以改成超過就自動分頁，再按一次 Ａ 看下一頁。
+   分頁時用比繪製時再窄一點的寬度換行（208 vs 216），這樣字型載入前後的量測誤差
+   不會讓某一行在繪製時又被拆成兩行、湊成第五行被切掉。 */
+var DLG_LINES=4;
+function paginate(pages){
+  var out=[];
+  pages.forEach(function(p){
+    var ls=wrap(String(p),208,FT),i;
+    /* 平均分配，避免最後一頁只剩孤零零一行（5 行會切成 3+2，不是 4+1） */
+    var n=Math.ceil(ls.length/DLG_LINES),per=Math.ceil(ls.length/n);
+    for(i=0;i<ls.length;i+=per)out.push(ls.slice(i,i+per).join("\n"));
+  });
+  return out.length?out:[""];
+}
+function say(name,pages,then){dlg={name:name,pages:paginate(pages),i:0,chars:0,then:then||null};mode="dialog";}
 function openMenu(title,items,onCancel){menu={title:title,items:items,idx:0,cancel:onCancel||null};mode="menu";}
 
 /* ── 提示：角色透露某一件是加分還是扣分 ── */
@@ -1570,8 +1586,11 @@ function drawEntry(){
   txt("計分",20,92,K.soft,FTS);
   txt((c.s>0?"＋":"－")+Math.abs(c.s),52,93,c.s>0?K.leafD:K.redD,'900 11px "Press Start 2P",monospace');
   px(18,100,212,1,K.paperD);
-  var y=118;
-  wrap(c.t,208,FT).slice(0,3).forEach(function(s){txt(s,20,y,K.ink,FT);y+=16;});
+  /* 事證紀錄這一頁沒有分頁可翻（◀▶ 是拿來翻別筆事證的），所以把行高收緊、
+     起點上移，讓它從 3 行變成放得下 4 行；真的超過才補上刪節號，不要無聲消失。 */
+  var y=116,ls=wrap(c.t,208,FT);
+  if(ls.length>4){ls=ls.slice(0,4);ls[3]+="…";}
+  ls.forEach(function(s){txt(s,20,y,K.ink,FT);y+=15;});
   px(0,H-17,W,17,K.night);
   txt(found.length>1?"◀▶ 翻閱其他事證　　Ｂ 返回手冊":"Ｂ 返回手冊",128,H-5,"#a9a3bb",FTS,"center");
 }
