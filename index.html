@@ -37,6 +37,7 @@
 
   /* 機身 8:16（1:2），比手機再瘦一點，讓按鍵離螢幕邊緣夠遠；螢幕另外維持 4:3 */
   .cab{
+    position:relative;
     container-type:inline-size;
     width:min(100%,430px,calc((100vh - 20px) * 0.5));
     width:min(100%,430px,calc((100svh - 20px) * 0.5));
@@ -178,6 +179,8 @@
   .foot .cap{flex:1;text-align:center;}
   .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
   .foot.done .cap{display:none;}
+  /* 名冊攤開時，機身上的東西全部藏起來，不然會從紙的圓角露出來 */
+  .cab.formon > :not(.over){visibility:hidden;}
   /* 結尾時兩顆按鈕要夠大、夠顯眼：分享是主按鈕，名冊是次要；音樂鈕留在左邊不動 */
   .foot.done .snd{margin-right:auto;}
   .foot.done .share{
@@ -190,29 +193,32 @@
 
   /* ── 結尾的聯絡方式表單：蓋在螢幕上的真 HTML 表單 ── */
   .over{
-    position:absolute;inset:0;z-index:6;
-    background:linear-gradient(180deg,#efe7d4,#e2d8c0);
-    color:#2a281f;
-    display:flex;align-items:center;justify-content:center;
-    padding:10px;box-sizing:border-box;overflow:auto;
+    position:absolute;inset:3cqw;z-index:6;
+    background:linear-gradient(180deg,#f2ead6,#e6dcc3);
+    color:#2a281f;border-radius:2.5cqw 2.5cqw 11cqw 2.5cqw;
+    border:1px solid #9c937c;
+    box-shadow:0 10px 26px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6);
+    display:flex;justify-content:center;
+    padding:16px;box-sizing:border-box;overflow:auto;
     font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
     -webkit-user-select:auto;user-select:auto;
   }
-  .over form{width:100%;max-width:330px;display:flex;flex-direction:column;gap:5px;}
-  .over h3{margin:0;font-size:15px;letter-spacing:.16em;text-align:center;font-weight:900;}
-  .over .why{margin:0;font-size:11px;line-height:1.5;opacity:.72;text-align:center;}
-  .over label{display:flex;flex-direction:column;gap:2px;font-size:11px;opacity:.8;}
+  .over form{width:100%;max-width:330px;margin:auto 0;display:flex;flex-direction:column;gap:8px;}
+  .over h3{margin:0 0 2px;font-size:19px;letter-spacing:.2em;text-align:center;font-weight:900;
+    padding-bottom:8px;border-bottom:2px solid #8d2f28;}
+  .over .why{margin:0 0 4px;font-size:13px;line-height:1.65;opacity:.78;text-align:center;}
+  .over label{display:flex;flex-direction:column;gap:3px;font-size:12px;opacity:.85;}
   /* 字級一定要 16px：低於 16px 時 iOS Safari 會在聚焦輸入框時自動放大整頁 */
   .over input[type=email],.over input[type=text]{
     font:16px/1.2 inherit;padding:6px 8px;width:100%;box-sizing:border-box;
     border:1px solid #9c937c;border-radius:3px;background:#fbf7ec;color:#2a281f;
   }
-  .over .ck{flex-direction:row;align-items:center;gap:6px;font-size:11px;opacity:.9;}
+  .over .ck{flex-direction:row;align-items:center;gap:6px;font-size:12px;opacity:.9;}
   .over .ck input{width:16px;height:16px;flex:0 0 auto;margin:0;}
   .over .err{margin:0;min-height:13px;font-size:11px;color:#9c2f28;text-align:center;}
   .over .row{display:flex;gap:8px;margin-top:2px;}
   .over .row button{
-    flex:1;font:700 13px inherit;padding:7px 0;border-radius:3px;cursor:pointer;
+    flex:1;font:700 14px inherit;min-height:44px;padding:0;border-radius:3px;cursor:pointer;
     border:1px solid #9c937c;background:#fbf7ec;color:#2a281f;
   }
   .over .row #send{background:var(--plate);border-color:#6d231d;color:#f3e7dc;}
@@ -287,6 +293,11 @@
 
     .foot{grid-area:foot;font-size:1.2cqw;min-height:0;}
     .share,.snd{font-size:1.2cqw;padding:.5cqw 1.2cqw;}
+    .over{inset:1.6cqw;border-radius:5cqw/11cqw;padding:10px 16px;}
+    .over form{gap:5px;}
+    .over h3{font-size:17px;padding-bottom:5px;}
+    /* 橫式夠寬、不夠高：說明文字併回兩行 */
+    .over .why .nb{display:none;}
     .foot.done .share{font-size:1.7cqw;padding:0 1.6cqw;min-height:max(4.2cqw,34px);border-radius:.8cqw;}
   }
 </style>
@@ -304,29 +315,6 @@
       <div class="scan"></div>
       <div class="stamp" id="stamp"></div>
 
-      <!-- 結尾的聯絡方式表單。蓋在螢幕上，用真的 input 才能叫得出手機鍵盤與自動填入。 -->
-      <div class="over" id="sub" hidden>
-        <form id="subf" novalidate>
-          <h3>稽查員名冊</h3>
-          <p class="why">留下 email，《昨日病房》有新場次或優惠時通知你。<br>只用於本劇的演出資訊，不會提供給第三方。</p>
-          <label>Email
-            <input id="em" type="email" inputmode="email" autocomplete="email"
-                   placeholder="you@example.com" spellcheck="false">
-          </label>
-          <label>稱呼（可不填）
-            <input id="nm" type="text" autocomplete="nickname" maxlength="20" placeholder="怎麼稱呼你">
-          </label>
-          <label class="ck">
-            <input id="ok" type="checkbox">
-            <span>我願意收到《昨日病房》的演出資訊</span>
-          </label>
-          <p class="err" id="er" role="alert"></p>
-          <div class="row">
-            <button type="button" id="skip">稍後再說</button>
-            <button type="submit" id="send">送出</button>
-          </div>
-        </form>
-      </div>
     </div>
     <span class="mark">MEIHAN&nbsp;OPTICAL&nbsp;LCD</span>
     <span class="led"></span>
@@ -362,6 +350,31 @@
     <span class="cap">《昨日病房》外傳</span>
     <button class="share" id="mail">加入稽查員名冊</button>
     <button class="share" id="share">分享圖片</button>
+  </div>
+
+  <!-- 結尾的聯絡方式表單。像一張名冊紙蓋在整台機身上（螢幕只有約 200px 高，塞不下整張表）；
+       用真的 input 才能叫得出手機鍵盤與自動填入。 -->
+  <div class="over" id="sub" hidden>
+    <form id="subf" novalidate>
+      <h3>稽查員名冊</h3>
+      <p class="why">明日之家若有新的稽查任務，<br class="nb">會寄一份派令給你。<br>只用於《昨日病房》的演出消息，<br class="nb">不會提供給第三方。</p>
+      <label>Email
+        <input id="em" type="email" inputmode="email" autocomplete="email"
+               placeholder="you@example.com" spellcheck="false">
+      </label>
+      <label>稱呼（可不填）
+        <input id="nm" type="text" autocomplete="nickname" maxlength="20" placeholder="怎麼稱呼你">
+      </label>
+      <label class="ck">
+        <input id="ok" type="checkbox">
+        <span>我願意收到《昨日病房》的演出資訊</span>
+      </label>
+      <p class="err" id="er" role="alert"></p>
+      <div class="row">
+        <button type="button" id="skip">稍後再說</button>
+        <button type="submit" id="send">送出</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -2148,9 +2161,10 @@ function mailSent(){try{return localStorage.getItem("mbh_mail")==="1";}catch(e){
 function openForm(){
   formOpen=true;held={};just={};
   subBox.hidden=false;errBox.textContent="";
+  subBox.parentNode.classList.add("formon");
   setTimeout(function(){try{inEmail.focus();}catch(e){}},50);
 }
-function closeForm(){formOpen=false;held={};just={};subBox.hidden=true;}
+function closeForm(){formOpen=false;held={};just={};subBox.hidden=true;subBox.parentNode.classList.remove("formon");}
 
 document.getElementById("skip").addEventListener("click",closeForm);
 mailBtn.addEventListener("click",openForm);
@@ -2180,8 +2194,8 @@ subForm.addEventListener("submit",function(e){
   fetch(FORM.action,{method:"POST",mode:"no-cors",body:body})["catch"](function(){});
   try{localStorage.setItem("mbh_mail","1");}catch(_){}
   setTimeout(function(){
-    subForm.innerHTML='<p class="thanks"><b>已登記</b>'
-      +'謝謝你，稽查員。<br>《昨日病房》有新消息時會寄給你。</p>'
+    subForm.innerHTML='<p class="thanks"><b>已列入名冊</b>'
+      +'謝謝你，稽查員。<br>下一份派令，會寄到你的信箱。</p>'
       +'<div class="row"><button type="button" id="close2">回到評分表</button></div>';
     document.getElementById("close2").addEventListener("click",closeForm);
     mailBtn.classList.remove("show");
