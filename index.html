@@ -37,7 +37,6 @@
 
   /* 機身 8:16（1:2），比手機再瘦一點，讓按鍵離螢幕邊緣夠遠；螢幕另外維持 4:3 */
   .cab{
-    position:relative;
     container-type:inline-size;
     width:min(100%,430px,calc((100vh - 20px) * 0.5));
     width:min(100%,430px,calc((100svh - 20px) * 0.5));
@@ -179,8 +178,6 @@
   .foot .cap{flex:1;text-align:center;}
   .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
   .foot.done .cap{display:none;}
-  /* 名冊攤開時，機身上的東西全部藏起來，不然會從紙的圓角露出來 */
-  .cab.formon > :not(.over){visibility:hidden;}
   /* 結尾時兩顆按鈕要夠大、夠顯眼：分享是主按鈕，名冊是次要；音樂鈕留在左邊不動 */
   .foot.done .snd{margin-right:auto;}
   .foot.done .share{
@@ -191,40 +188,55 @@
   .foot.done #share{background:var(--plate);border-color:#6d231d;color:#f3e7dc;box-shadow:0 2px 0 #4e211e;}
   .foot.done #share:active{filter:brightness(1.12);}
 
-  /* ── 結尾的聯絡方式表單：蓋在螢幕上的真 HTML 表單 ── */
+  /* ── 結尾的稽查員名冊：蓋在遊戲螢幕上的真 HTML 表單（才叫得出手機鍵盤與自動填入）。
+     螢幕只有約 170～220px 高，整張表塞不下，所以一次只問一題，永遠不必捲動。
+     .over 自己是尺寸容器，裡面的 cqw 都是「螢幕寬的百分比」，直式、橫式 GBA 一樣適用。 ── */
   .over{
-    position:absolute;inset:3cqw;z-index:6;
+    position:absolute;inset:0;z-index:6;
+    container-type:size;
     background:linear-gradient(180deg,#f2ead6,#e6dcc3);
-    color:#2a281f;border-radius:2.5cqw 2.5cqw 11cqw 2.5cqw;
-    border:1px solid #9c937c;
-    box-shadow:0 10px 26px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6);
-    display:flex;justify-content:center;
-    padding:16px;box-sizing:border-box;overflow:auto;
+    color:#2a281f;
+    padding:4% 6%;box-sizing:border-box;overflow:hidden;
     font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
     -webkit-user-select:auto;user-select:auto;
   }
-  .over form{width:100%;max-width:330px;margin:auto 0;display:flex;flex-direction:column;gap:8px;}
-  .over h3{margin:0 0 2px;font-size:19px;letter-spacing:.2em;text-align:center;font-weight:900;
-    padding-bottom:8px;border-bottom:2px solid #8d2f28;}
-  .over .why{margin:0 0 4px;font-size:13px;line-height:1.65;opacity:.78;text-align:center;}
-  .over label{display:flex;flex-direction:column;gap:3px;font-size:12px;opacity:.85;}
+  .over form{height:100%;}
+  .over .step{height:100%;display:none;flex-direction:column;justify-content:center;gap:3.2cqw;}
+  .over .step.on{display:flex;}
+  .over .top{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:max(4cqw,10px);letter-spacing:.14em;
+    border-bottom:1px solid #8d2f28;padding-bottom:1.2cqw;
+  }
+  .over .top span{opacity:.7;}
+  .over .top button{
+    border:0;background:none;padding:0 0 0 2cqw;cursor:pointer;
+    font:inherit;letter-spacing:.06em;color:#8d2f28;
+  }
+  .over h3{
+    margin:0;font-size:6.4cqw;letter-spacing:.2em;text-align:center;font-weight:900;
+    padding-bottom:1.6cqw;border-bottom:2px solid #8d2f28;
+  }
+  .over .why{margin:0;font-size:max(4.6cqw,11px);line-height:1.6;opacity:.8;text-align:center;}
+  .over .q{margin:0;font-size:max(5.4cqw,12px);line-height:1.35;font-weight:900;}
+  .over .note{margin:0;font-size:max(4cqw,10px);line-height:1.5;opacity:.65;}
   /* 字級一定要 16px：低於 16px 時 iOS Safari 會在聚焦輸入框時自動放大整頁 */
-  .over input[type=email],.over input[type=text]{
-    font:16px/1.2 inherit;padding:6px 8px;width:100%;box-sizing:border-box;
+  .over input{
+    font-family:inherit;font-size:16px;line-height:1.2;padding:6px 8px;width:100%;box-sizing:border-box;
     border:1px solid #9c937c;border-radius:3px;background:#fbf7ec;color:#2a281f;
   }
-  .over .ck{flex-direction:row;align-items:center;gap:6px;font-size:12px;opacity:.9;}
-  .over .ck input{width:16px;height:16px;flex:0 0 auto;margin:0;}
-  .over .err{margin:0;min-height:13px;font-size:11px;color:#9c2f28;text-align:center;}
-  .over .row{display:flex;gap:8px;margin-top:2px;}
+  .over .err{margin:0;min-height:1.3em;font-size:max(4cqw,10px);color:#9c2f28;}
+  .over .row{display:flex;gap:3cqw;}
   .over .row button{
-    flex:1;font:700 14px inherit;min-height:44px;padding:0;border-radius:3px;cursor:pointer;
+    flex:1;font-family:inherit;font-weight:700;font-size:max(4.8cqw,12px);letter-spacing:.06em;
+    min-height:max(13cqw,30px);padding:0;border-radius:3px;cursor:pointer;
     border:1px solid #9c937c;background:#fbf7ec;color:#2a281f;
   }
-  .over .row #send{background:var(--plate);border-color:#6d231d;color:#f3e7dc;}
+  .over .row .go{background:var(--plate);border-color:#6d231d;color:#f3e7dc;}
   .over .row button:active{filter:brightness(.92);}
-  .over .thanks{text-align:center;font-size:13px;line-height:1.7;}
-  .over .thanks b{display:block;font-size:15px;letter-spacing:.16em;margin-bottom:6px;}
+  .over .row button:disabled{opacity:.6;}
+  .over .thanks{text-align:center;}
+  .over .thanks b{font-size:6.4cqw;letter-spacing:.2em;}
 
   /* ════════ 橫拿手機：整台變成 GBA 造型的橫式掌機（機身 16:8） ════════
      方向鍵在左、螢幕置中、AB 在右、START／SELECT 在左下、喇叭孔在右下。
@@ -293,11 +305,6 @@
 
     .foot{grid-area:foot;font-size:1.2cqw;min-height:0;}
     .share,.snd{font-size:1.2cqw;padding:.5cqw 1.2cqw;}
-    .over{inset:1.6cqw;border-radius:5cqw/11cqw;padding:10px 16px;}
-    .over form{gap:5px;}
-    .over h3{font-size:17px;padding-bottom:5px;}
-    /* 橫式夠寬、不夠高：說明文字併回兩行 */
-    .over .why .nb{display:none;}
     .foot.done .share{font-size:1.7cqw;padding:0 1.6cqw;min-height:max(4.2cqw,34px);border-radius:.8cqw;}
   }
 </style>
@@ -314,6 +321,56 @@
       <canvas id="cv" width="256" height="192" aria-label="模範病院稽查遊戲畫面"></canvas>
       <div class="scan"></div>
       <div class="stamp" id="stamp"></div>
+
+      <!-- 結尾的稽查員名冊：一次一題（說明 → email → 稱呼 → 要不要收消息 → 完成） -->
+      <div class="over" id="sub" hidden>
+        <form id="subf" novalidate>
+          <div class="step">
+            <h3>稽查員名冊</h3>
+            <p class="why">明日之家若有新的稽查任務，<br>會寄一份派令給你。</p>
+            <p class="note" style="text-align:center">共三題，十秒填完。</p>
+            <div class="row">
+              <button type="button" data-act="skip">稍後再說</button>
+              <button type="button" data-act="next" class="go">登記</button>
+            </div>
+          </div>
+          <div class="step">
+            <div class="top"><span>稽查員名冊　1／3</span></div>
+            <p class="q">派令要寄到哪裡？</p>
+            <input id="em" type="email" inputmode="email" autocomplete="email" enterkeyhint="next"
+                   placeholder="you@example.com" spellcheck="false" aria-label="Email">
+            <p class="err" id="er" role="alert"></p>
+            <div class="row">
+              <button type="button" data-act="back">上一步</button>
+              <button type="button" data-act="next" class="go">下一步</button>
+            </div>
+          </div>
+          <div class="step">
+            <div class="top"><span>稽查員名冊　2／3</span></div>
+            <p class="q">怎麼稱呼你？</p>
+            <input id="nm" type="text" autocomplete="nickname" maxlength="20" enterkeyhint="next"
+                   placeholder="可不填" aria-label="稱呼">
+            <div class="row">
+              <button type="button" data-act="back">上一步</button>
+              <button type="button" data-act="next" class="go">下一步</button>
+            </div>
+          </div>
+          <div class="step">
+            <div class="top"><span>稽查員名冊　3／3</span><button type="button" data-act="back">‹ 上一步</button></div>
+            <p class="q">要收到《昨日病房》的演出消息嗎？</p>
+            <p class="note">只用於本劇，不會提供給第三方。</p>
+            <div class="row">
+              <button type="button" data-act="no">先不用</button>
+              <button type="button" data-act="yes" class="go">要，寄給我</button>
+            </div>
+          </div>
+          <div class="step thanks">
+            <b>已列入名冊</b>
+            <p class="why">謝謝你，稽查員。<br>下一份派令，會寄到你的信箱。</p>
+            <div class="row"><button type="button" data-act="close">回到評分表</button></div>
+          </div>
+        </form>
+      </div>
 
     </div>
     <span class="mark">MEIHAN&nbsp;OPTICAL&nbsp;LCD</span>
@@ -350,31 +407,6 @@
     <span class="cap">《昨日病房》外傳</span>
     <button class="share" id="mail">加入稽查員名冊</button>
     <button class="share" id="share">分享圖片</button>
-  </div>
-
-  <!-- 結尾的聯絡方式表單。像一張名冊紙蓋在整台機身上（螢幕只有約 200px 高，塞不下整張表）；
-       用真的 input 才能叫得出手機鍵盤與自動填入。 -->
-  <div class="over" id="sub" hidden>
-    <form id="subf" novalidate>
-      <h3>稽查員名冊</h3>
-      <p class="why">明日之家若有新的稽查任務，<br class="nb">會寄一份派令給你。<br>只用於《昨日病房》的演出消息，<br class="nb">不會提供給第三方。</p>
-      <label>Email
-        <input id="em" type="email" inputmode="email" autocomplete="email"
-               placeholder="you@example.com" spellcheck="false">
-      </label>
-      <label>稱呼（可不填）
-        <input id="nm" type="text" autocomplete="nickname" maxlength="20" placeholder="怎麼稱呼你">
-      </label>
-      <label class="ck">
-        <input id="ok" type="checkbox">
-        <span>我願意收到《昨日病房》的演出資訊</span>
-      </label>
-      <p class="err" id="er" role="alert"></p>
-      <div class="row">
-        <button type="button" id="skip">稍後再說</button>
-        <button type="submit" id="send">送出</button>
-      </div>
-    </form>
   </div>
 </div>
 
@@ -2148,43 +2180,53 @@ document.getElementById("share").addEventListener("click",function(){
   });
 });
 
-/* ════════ 結尾的聯絡方式表單 ════════ */
+/* ════════ 結尾的稽查員名冊（一次一題） ════════ */
 var subBox=document.getElementById("sub"),
     subForm=document.getElementById("subf"),
     inEmail=document.getElementById("em"),
     inName=document.getElementById("nm"),
-    inOk=document.getElementById("ok"),
     errBox=document.getElementById("er"),
-    mailBtn=document.getElementById("mail");
+    mailBtn=document.getElementById("mail"),
+    steps=subForm.querySelectorAll(".step"),
+    step=0,sending=false;
+var EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function mailSent(){try{return localStorage.getItem("mbh_mail")==="1";}catch(e){return false;}}
-function openForm(){
-  formOpen=true;held={};just={};
-  subBox.hidden=false;errBox.textContent="";
-  subBox.parentNode.classList.add("formon");
-  setTimeout(function(){try{inEmail.focus();}catch(e){}},50);
+function goStep(n){
+  step=n;errBox.textContent="";
+  for(var i=0;i<steps.length;i++)steps[i].classList.toggle("on",i===n);
+  var inp=steps[n].querySelector("input");
+  /* 有輸入框的頁面直接聚焦（email → 稱呼之間鍵盤不會收起來）；沒有的就收鍵盤 */
+  if(inp)setTimeout(function(){try{inp.focus();}catch(e){}},50);
+  else{try{document.activeElement.blur();}catch(e){}}
 }
-function closeForm(){formOpen=false;held={};just={};subBox.hidden=true;subBox.parentNode.classList.remove("formon");}
-
-document.getElementById("skip").addEventListener("click",closeForm);
-mailBtn.addEventListener("click",openForm);
-
-subForm.addEventListener("submit",function(e){
-  e.preventDefault();
-  var em=(inEmail.value||"").trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){
-    errBox.textContent="請填一個看起來正常的 email。";
-    try{inEmail.focus();}catch(_){}
-    return;
-  }
-  if(!FORM){errBox.textContent="名冊尚未開放，晚點再試。";return;}
-  var send=document.getElementById("send");
-  send.disabled=true;send.textContent="送出中…";
+function openForm(){formOpen=true;held={};just={};subBox.hidden=false;goStep(0);}
+function closeForm(){
+  formOpen=false;held={};just={};subBox.hidden=true;
+  try{document.activeElement.blur();}catch(e){}
+}
+function emailOk(){
+  if(EMAIL_RE.test((inEmail.value||"").trim()))return true;
+  errBox.textContent="這個 email 看起來怪怪的，再檢查一下。";
+  try{inEmail.focus();}catch(e){}
+  return false;
+}
+function nextStep(){
+  if(step===1&&!emailOk())return;
+  if(step<3)goStep(step+1);
+}
+function sendForm(ok){
+  if(sending)return;
+  if(!EMAIL_RE.test((inEmail.value||"").trim())){goStep(1);emailOk();return;}
+  if(!FORM)return;
+  sending=true;
+  var btns=steps[3].querySelectorAll("button");
+  for(var i=0;i<btns.length;i++)btns[i].disabled=true;
 
   var body=new URLSearchParams();
-  body.append(FORM.email,em);
+  body.append(FORM.email,(inEmail.value||"").trim());
   if(FORM.name) body.append(FORM.name,(inName.value||"").trim());
-  if(FORM.ok)   body.append(FORM.ok,inOk.checked?"是":"否");
+  if(FORM.ok)   body.append(FORM.ok,ok?"是":"否");
   if(FORM.score)body.append(FORM.score,String(RESULT?RESULT.s:""));
   if(FORM.grade)body.append(FORM.grade,RESULT?RESULT.g.g.replace(/\s/g,""):"");
   if(FORM.code) body.append(FORM.code,myCode);
@@ -2194,13 +2236,29 @@ subForm.addEventListener("submit",function(e){
   fetch(FORM.action,{method:"POST",mode:"no-cors",body:body})["catch"](function(){});
   try{localStorage.setItem("mbh_mail","1");}catch(_){}
   setTimeout(function(){
-    subForm.innerHTML='<p class="thanks"><b>已列入名冊</b>'
-      +'謝謝你，稽查員。<br>下一份派令，會寄到你的信箱。</p>'
-      +'<div class="row"><button type="button" id="close2">回到評分表</button></div>';
-    document.getElementById("close2").addEventListener("click",closeForm);
+    sending=false;
+    for(var i=0;i<btns.length;i++)btns[i].disabled=false;
+    goStep(4);
     mailBtn.classList.remove("show");
   },400);
+}
+
+mailBtn.addEventListener("click",openForm);
+subForm.addEventListener("click",function(e){
+  var b=e.target.closest&&e.target.closest("button[data-act]");
+  if(!b)return;
+  var act=b.getAttribute("data-act");
+  if(act==="next")nextStep();
+  else if(act==="back")goStep(Math.max(0,step-1));
+  else if(act==="yes")sendForm(true);
+  else if(act==="no")sendForm(false);
+  else if(act==="skip"||act==="close")closeForm();
 });
+/* 手機鍵盤上的「下一步／前往」會送出 Enter */
+subForm.addEventListener("keydown",function(e){
+  if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();nextStep();}
+});
+subForm.addEventListener("submit",function(e){e.preventDefault();});
 
 /* ════════ 背景音樂 ════════ */
 /* 瀏覽器不准無使用者動作就出聲，所以綁在第一次按鍵或觸碰（標題畫面一定會按） */
