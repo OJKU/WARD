@@ -178,6 +178,15 @@
   .foot .cap{flex:1;text-align:center;}
   .key:focus-visible,.share:focus-visible,.snd:focus-visible{outline:2px solid #d8b24a;outline-offset:2px;}
   .foot.done .cap{display:none;}
+  /* 結尾時兩顆按鈕要夠大、夠顯眼：分享是主按鈕，名冊是次要；音樂鈕留在左邊不動 */
+  .foot.done .snd{margin-right:auto;}
+  .foot.done .share{
+    font-size:3.4cqw;font-weight:700;letter-spacing:.08em;
+    padding:0 3.2cqw;min-height:max(10cqw,40px);border-radius:1.6cqw;
+    box-shadow:0 2px 0 var(--shell-edge);
+  }
+  .foot.done #share{background:var(--plate);border-color:#6d231d;color:#f3e7dc;box-shadow:0 2px 0 #4e211e;}
+  .foot.done #share:active{filter:brightness(1.12);}
 
   /* ── 結尾的聯絡方式表單：蓋在螢幕上的真 HTML 表單 ── */
   .over{
@@ -278,6 +287,7 @@
 
     .foot{grid-area:foot;font-size:1.2cqw;min-height:0;}
     .share,.snd{font-size:1.2cqw;padding:.5cqw 1.2cqw;}
+    .foot.done .share{font-size:1.7cqw;padding:0 1.6cqw;min-height:max(4.2cqw,34px);border-radius:.8cqw;}
   }
 </style>
 
@@ -350,7 +360,7 @@
   <div class="foot">
     <button class="snd" id="mute" aria-pressed="false" aria-label="背景音樂開關">♪ 音樂</button>
     <span class="cap">《昨日病房》外傳</span>
-    <button class="share" id="mail">留 email</button>
+    <button class="share" id="mail">加入稽查員名冊</button>
     <button class="share" id="share">分享圖片</button>
   </div>
 </div>
@@ -1861,8 +1871,10 @@ function drawResult(){
   txt(RESULT.g.c[0],22,162,K.ink,FTS);
   txt(RESULT.g.c[1],22,174,K.ink,FTS);
   /* 底下輪播提示：不講的話玩家會直接按 Ａ 重來，沒注意到機身下緣的兩顆按鈕 */
-  var hints=[FORM?"↓ 可分享圖片、留下聯絡方式":"↓ 可把評分表存成圖片分享","按 Ａ 重新稽查"];
+  var hints=[FORM?"↓ 可分享圖片、加入稽查員名冊":"↓ 可把評分表存成圖片分享","按 Ａ 重新稽查"];
   if(RESULT.n>=30)hints.push("＊你看見的，比他們願意給你看的多。");
+  /* 分享圖裡固定一句，不要停在「↓ 可分享…」這種只對機器上有意義的提示 */
+  if(sharing)hints=[RESULT.n>=30?hints[2]:"按 Ａ 重新稽查"];
   txt(hints[Math.floor(blink/140)%hints.length],128,188,K.cream,FTS,"center");
 }
 
@@ -1892,8 +1904,9 @@ function draw(){
 }
 
 /* ════════ 分享圖（9:16，給 IG 限動）════════ */
-/* 在 270×480 的小畫布上用遊戲原本那套像素繪圖工具畫，再用 imageSmoothingEnabled=false
-   放大四倍成 1080×1920，就是一張邊緣銳利的像素風限動圖。 */
+/* 分享的是「整台機器」：結尾那一格螢幕照原樣畫出來（連紅印章），整數放大三倍，
+   貼進用 Canvas 重畫的 GAMEBOY 機身；推薦碼做成貼在機身上的稽查貼紙。
+   機身下緣那三顆 HTML 小按鈕不會出現在圖裡。 */
 var GAME_URL="https://ojku.github.io/WARD/";
 
 function stamp(cx,cy,r,txt1,txt2){
@@ -1910,61 +1923,182 @@ function stamp(cx,cy,r,txt1,txt2){
   ctx.restore();
 }
 
-function drawShareCard(){
-  var R=RESULT;
-  px(0,0,270,480,K.night);
-  panel(10,14,250,452,K.paper);
-  px(18,24,234,2,K.redD);px(18,29,234,1,K.redD);
+/* 分享圖裡要不要把螢幕底下那行輪播提示換成固定字（截圖不該停在半句「↓ 可分享…」上） */
+var sharing=false;
 
-  txt("模範病院評分表",135,58,K.ink,'900 21px "Noto Sans TC",sans-serif',"center");
-  txt("臺灣省衛生處　病院評鑑　民國五十九年",135,76,K.soft,FTS,"center");
-  px(22,88,226,1,K.paperD);
+/* 圓角矩形路徑，四角半徑依 CSS 順序：左上、右上、右下、左下 */
+function rr(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r[0],y);
+  c.lineTo(x+w-r[1],y);c.quadraticCurveTo(x+w,y,x+w,y+r[1]);
+  c.lineTo(x+w,y+h-r[2]);c.quadraticCurveTo(x+w,y+h,x+w-r[2],y+h);
+  c.lineTo(x+r[3],y+h);c.quadraticCurveTo(x,y+h,x,y+h-r[3]);
+  c.lineTo(x,y+r[0]);c.quadraticCurveTo(x,y,x+r[0],y);
+  c.closePath();
+}
+function spaced(c,n){ if("letterSpacing" in c)c.letterSpacing=n+"px"; }
+function label(c,s,x,y,font,color,align,sp){
+  c.font=font;c.fillStyle=color;c.textAlign=align||"left";c.textBaseline="middle";
+  spaced(c,sp||0);c.fillText(s,x,y);spaced(c,0);
+}
 
-  txt("受檢單位",24,108,K.soft,FTS);txt("明日之家",84,108,K.ink,FT);
-  txt("稽查時間",24,128,K.soft,FTS);txt(fmtTime(),84,128,K.ink,FTS);
-  px(22,140,226,1,K.paperD);
+/* 整台 GAMEBOY 機身，照 CSS 的比例畫在 1080×1920 上（u ＝ 機身寬的 1%，等同 CSS 的 cqw） */
+function drawShell(c,scr){
+  var IW=1080,IH=1920;
+  var g=c.createRadialGradient(540,0,0,540,0,IH*1.05);
+  g.addColorStop(0,"#34382e");g.addColorStop(.6,"#23261f");g.addColorStop(1,"#16180f");
+  c.fillStyle=g;c.fillRect(0,0,IW,IH);
 
-  txt("總　分",24,162,K.soft,FTS);
-  txt(String(R.s),24,200,R.s>=75?K.leafD:(R.s>=60?K.goldD:K.redD),
-      '900 30px "Press Start 2P",monospace');
-  txt("／100",120,196,K.soft,FTS);
-  txt("等　第",24,226,K.soft,FTS);
-  txt(R.g.g,72,227,K.ink,'900 16px "Noto Sans TC",sans-serif');
-  stamp(206,190,34,R.g.st.replace(/\s/g,""),"衛生處");
-  px(22,240,226,1,K.paperD);
+  var X=60,Y=64,SW=960,SH=1770,u=SW/100,P=40;
 
-  txt("事　證",24,262,K.soft,FTS);
-  txt(R.n+" ／ 30　略過 "+R.sk+" 件",72,262,K.ink,FTS);
-  txt("結　局",24,282,K.soft,FTS);
-  txt(R.seen.length+" ／ "+N_END,72,282,K.ink,FTS);
-  for(var e=0;e<N_END;e++)
-    box(118+e*15,275,11,7,R.seen.indexOf(String(e))>=0?K.gold:K.paper,K.paperD);
-  px(22,294,226,1,K.paperD);
+  /* 機身 */
+  c.save();
+  c.shadowColor="rgba(0,0,0,.55)";c.shadowBlur=60;c.shadowOffsetY=28;
+  rr(c,X,Y,SW,SH,[4*u,4*u,13*u,4*u]);
+  var sg=c.createLinearGradient(X+SW*.4,Y,X+SW*.6,Y+SH);
+  sg.addColorStop(0,"#e3ddcc");sg.addColorStop(.3,"#cec8b6");sg.addColorStop(1,"#a9a390");
+  c.fillStyle=sg;c.fill();
+  c.restore();
+  rr(c,X,Y,SW,SH,[4*u,4*u,13*u,4*u]);
+  c.lineWidth=2;c.strokeStyle="#7e7866";c.stroke();
+  rr(c,X+3,Y+3,SW-6,SH-6,[4*u-3,4*u-3,13*u-3,4*u-3]);
+  c.lineWidth=2;c.strokeStyle="rgba(255,255,255,.55)";c.stroke();
 
-  txt("評　語",24,314,K.soft,FTS);
-  txt(R.g.c[0],24,334,K.ink,FTS);
-  txt(R.g.c[1],24,350,K.ink,FTS);
-  if(R.n>=30)txt("＊你看見的，比他們願意給你看的多。",24,368,K.redD,FTS);
+  /* 銘板 */
+  var L=X+P,R=X+SW-P,py=Y+P+22;
+  c.font='700 24px "Noto Sans TC",sans-serif';spaced(c,5);
+  var tagW=c.measureText("臺灣省衛生處").width+32;spaced(c,0);
+  c.fillStyle="#8d2f28";c.fillRect(L,py-21,tagW,42);
+  label(c,"臺灣省衛生處",L+16,py+1,'700 24px "Noto Sans TC",sans-serif',"#f3e7dc","left",5);
+  c.font='500 24px "Noto Sans TC",sans-serif';spaced(c,3);
+  var rw=c.measureText("病院稽查機　59-A").width;spaced(c,0);
+  c.globalAlpha=.85;
+  label(c,"病院稽查機　59-A",R,py+1,'500 24px "Noto Sans TC",sans-serif',"#2a281f","right",3);
+  c.globalAlpha=.4;c.fillStyle="#7e7866";c.fillRect(L+tagW+18,py,R-rw-18-(L+tagW+18),2);
+  c.globalAlpha=1;
 
-  /* 推薦碼：病毒行銷的鉤子，要最顯眼 */
-  for(var d=22;d<248;d+=6)px(d,376,3,1,K.paperD);
-  txt("稽查員推薦碼",135,394,K.soft,FTS,"center");
-  txt(myCode,135,422,K.redD,'900 26px "Press Start 2P",monospace',"center");
-  txt("把這組碼給下一位稽查員，他才解得開限閱卷宗。",135,438,K.soft,FTS,"center");
-  txt("《昨日病房》外傳・模範病院稽查",135,456,K.ink,FTS,"center");
+  /* 螢幕框：遊戲畫面整數放大三倍（256×192 → 768×576），像素才會方正 */
+  var bx=L,by=Y+100,bw=R-L,SC=3,sw=W*SC,shh=H*SC;
+  var bh=40+shh+66;
+  rr(c,bx,by,bw,bh,[24,24,58,24]);
+  var bg=c.createLinearGradient(0,by,0,by+bh);bg.addColorStop(0,"#333729");bg.addColorStop(1,"#22261c");
+  c.fillStyle=bg;c.fill();
+  c.lineWidth=3;c.strokeStyle="rgba(0,0,0,.35)";c.stroke();
+  var sx=bx+(bw-sw)/2,sy=by+40;
+  c.imageSmoothingEnabled=false;
+  c.drawImage(scr,sx,sy,sw,shh);
+  /* 掃描線：每一個遊戲像素一條，跟機器上看到的一樣 */
+  c.fillStyle="rgba(12,9,22,.07)";
+  for(var ly=sy;ly<sy+shh;ly+=SC)c.fillRect(sx,ly,sw,1);
+  c.lineWidth=4;c.strokeStyle="rgba(25,35,27,.45)";c.strokeRect(sx+2,sy+2,sw-4,shh-4);
+  label(c,"MEIHAN OPTICAL LCD",bx+36,by+bh-24,'500 19px "Noto Sans TC",sans-serif',"#8d9482","left",5);
+  c.save();c.shadowColor="rgba(196,69,58,.9)";c.shadowBlur=14;
+  c.fillStyle="#c4453a";c.beginPath();c.arc(bx+bw-44,by+bh-26,8,0,Math.PI*2);c.fill();c.restore();
 
-  /* 紙面外的暗色邊條：限動的圖常常脫離文字被轉傳，網址一定要印在圖上 */
-  txt("ojku.github.io/WARD",135,475,K.cream,FTS,"center");
+  var cy=by+bh+38;
+  c.globalAlpha=.45;
+  label(c,"本機事證紀錄依病院評鑑辦法第七條辦理",540,cy,'500 21px "Noto Sans TC",sans-serif',"#2a281f","center",5);
+  c.globalAlpha=1;
+
+  /* 推薦碼貼紙：貼在機身上的稽查標籤，傳出去的圖一定帶著碼 */
+  var ky=cy+34,kw=720,kh=168;
+  c.save();c.translate(540,ky+kh/2);c.rotate(-1.6*Math.PI/180);
+  c.save();c.shadowColor="rgba(0,0,0,.28)";c.shadowBlur=10;c.shadowOffsetY=4;
+  c.fillStyle="#f2ead6";c.fillRect(-kw/2,-kh/2,kw,kh);c.restore();
+  c.strokeStyle="#8d2f28";c.lineWidth=3;c.strokeRect(-kw/2+10,-kh/2+10,kw-20,kh-20);
+  c.lineWidth=1;c.strokeRect(-kw/2+16,-kh/2+16,kw-32,kh-32);
+  label(c,"稽查員推薦碼",0,-kh/2+44,'700 24px "Noto Sans TC",sans-serif',"#6d6880","center",6);
+  label(c,myCode,0,-kh/2+94,'60px "Press Start 2P",monospace',"#8d2f28","center",6);
+  label(c,"把這組碼給下一位稽查員，他才解得開限閱卷宗。",0,-kh/2+138,'700 21px "Noto Sans TC",sans-serif',"#6d6880","center",1);
+  c.restore();
+
+  /* 方向鍵 */
+  var k=12.5*u,dx=L+2*u,dy=ky+kh+40,rad=1.6*u;
+  function cross(ox,oy){
+    c.beginPath();
+    c.moveTo(ox+k+rad,oy);c.lineTo(ox+2*k-rad,oy);c.quadraticCurveTo(ox+2*k,oy,ox+2*k,oy+rad);
+    c.lineTo(ox+2*k,oy+k);c.lineTo(ox+3*k-rad,oy+k);c.quadraticCurveTo(ox+3*k,oy+k,ox+3*k,oy+k+rad);
+    c.lineTo(ox+3*k,oy+2*k-rad);c.quadraticCurveTo(ox+3*k,oy+2*k,ox+3*k-rad,oy+2*k);
+    c.lineTo(ox+2*k,oy+2*k);c.lineTo(ox+2*k,oy+3*k-rad);c.quadraticCurveTo(ox+2*k,oy+3*k,ox+2*k-rad,oy+3*k);
+    c.lineTo(ox+k+rad,oy+3*k);c.quadraticCurveTo(ox+k,oy+3*k,ox+k,oy+3*k-rad);
+    c.lineTo(ox+k,oy+2*k);c.lineTo(ox+rad,oy+2*k);c.quadraticCurveTo(ox,oy+2*k,ox,oy+2*k-rad);
+    c.lineTo(ox,oy+k+rad);c.quadraticCurveTo(ox,oy+k,ox+rad,oy+k);
+    c.lineTo(ox+k,oy+k);c.lineTo(ox+k,oy+rad);c.quadraticCurveTo(ox+k,oy,ox+k+rad,oy);
+    c.closePath();
+  }
+  c.save();c.shadowColor="rgba(0,0,0,.35)";c.shadowBlur=10;c.shadowOffsetY=6;
+  cross(dx,dy+4);c.fillStyle="#31332e";c.fill();c.restore();
+  cross(dx,dy);
+  var dg=c.createLinearGradient(dx,dy,dx+k*.5,dy+3*k);dg.addColorStop(0,"#4d5049");dg.addColorStop(1,"#2b2d28");
+  c.fillStyle=dg;c.fill();
+  c.fillStyle="#3a3d37";c.fillRect(dx+k+6,dy+k+6,k-12,k-12);
+  var af='30px "Noto Sans TC",sans-serif';
+  label(c,"▲",dx+1.5*k,dy+.5*k,af,"#cdc8b8","center");
+  label(c,"▼",dx+1.5*k,dy+2.5*k,af,"#cdc8b8","center");
+  label(c,"◀",dx+.5*k,dy+1.5*k,af,"#cdc8b8","center");
+  label(c,"▶",dx+2.5*k,dy+1.5*k,af,"#cdc8b8","center");
+
+  /* A／B：整組轉 -16 度，B 低 A 高 */
+  var d=16*u,gap=3.6*u,gw=2*d+gap,gcx=R-2*u-gw/2,gcy=dy+1.5*k-10;
+  c.save();c.translate(gcx,gcy);c.rotate(-16*Math.PI/180);
+  [["B",-gw/2+d/2,2.5*u,"#5c605a","#474a44","#2a2c28","#dcd9cf"],
+   ["A", gw/2-d/2,-2.5*u,"#9c4741","#7e3430","#4e211e","#f0dcd6"]].forEach(function(b){
+    c.save();c.shadowColor="rgba(0,0,0,.4)";c.shadowBlur=12;c.shadowOffsetY=7;
+    c.fillStyle=b[5];c.beginPath();c.arc(b[1],b[2]+5,d/2,0,Math.PI*2);c.fill();c.restore();
+    var rg=c.createLinearGradient(b[1]-d/4,b[2]-d/2,b[1]+d/4,b[2]+d/2);
+    rg.addColorStop(0,b[3]);rg.addColorStop(1,b[4]);
+    c.fillStyle=rg;c.beginPath();c.arc(b[1],b[2],d/2,0,Math.PI*2);c.fill();
+    label(c,b[0],b[1]+3,b[2]+3,'44px "Press Start 2P",monospace',b[6],"center");
+  });
+  c.restore();
+
+  /* SELECT／START */
+  var pw=19*u,ph=4.6*u,pyc=dy+3*k+70;
+  [["SELECT",540-pw/2-2.5*u],["START",540+pw/2+2.5*u]].forEach(function(p){
+    c.save();c.translate(p[1],pyc);c.rotate(-16*Math.PI/180);
+    c.save();c.shadowColor="rgba(0,0,0,.35)";c.shadowBlur=8;c.shadowOffsetY=5;
+    rr(c,-pw/2,-ph/2+3,pw,ph,[ph/2,ph/2,ph/2,ph/2]);c.fillStyle="#31332e";c.fill();c.restore();
+    rr(c,-pw/2,-ph/2,pw,ph,[ph/2,ph/2,ph/2,ph/2]);
+    var pg=c.createLinearGradient(0,-ph/2,0,ph/2);pg.addColorStop(0,"#4d5049");pg.addColorStop(1,"#2b2d28");
+    c.fillStyle=pg;c.fill();
+    label(c,p[0],0,1,'700 21px "Noto Sans TC",sans-serif',"#d6d2c6","center",3);
+    c.restore();
+  });
+
+  /* 喇叭孔 */
+  var gx=R-3*u,gy=pyc+110;
+  c.save();c.translate(gx,gy);c.rotate(-24*Math.PI/180);
+  for(var i=0;i<6;i++){
+    var hx=-(i+1)*1.5*u-i*2.2*u;
+    rr(c,hx,-5*u,1.5*u,10*u,[u*.7,u*.7,u*.7,u*.7]);
+    var hg=c.createLinearGradient(0,-5*u,0,5*u);hg.addColorStop(0,"#a49e8c");hg.addColorStop(1,"#bdb7a5");
+    c.fillStyle=hg;c.fill();
+    c.lineWidth=1.5;c.strokeStyle="rgba(0,0,0,.25)";c.stroke();
+  }
+  c.restore();
+
+  /* 機身下緣與圖外的網址：限動的圖常常脫離文字被轉傳，網址一定要印在圖上 */
+  c.globalAlpha=.72;
+  label(c,"《昨日病房》外傳・模範病院稽查",L+12,Y+SH-46,'700 24px "Noto Sans TC",sans-serif',"#2a281f","left",2);
+  c.globalAlpha=1;
+  label(c,"ojku.github.io/WARD",540,Y+SH+44,'700 32px "Noto Sans TC",sans-serif',"#f6f1e4","center",3);
 }
 
 function buildShare(cb){
-  var SW=270,SH=480,SC=4;
-  var a=document.createElement("canvas");a.width=SW;a.height=SH;
+  /* 1. 在 256×192 畫出結尾那一格螢幕，把 HTML 蓋上去的紅印章也畫進來 */
+  var a=document.createElement("canvas");a.width=W;a.height=H;
   var actx=a.getContext("2d");actx.imageSmoothingEnabled=false;
-  withCtx(actx,drawShareCard);
-  var b=document.createElement("canvas");b.width=SW*SC;b.height=SH*SC;
-  var bctx=b.getContext("2d");bctx.imageSmoothingEnabled=false;
-  bctx.drawImage(a,0,0,b.width,b.height);
+  sharing=true;
+  try{
+    withCtx(actx,function(){
+      px(0,0,W,H,K.night);drawResult();
+      ctx.globalAlpha=.88;stamp(210,149,31,RESULT.g.st.replace(/\s/g,""),"衛生處");ctx.globalAlpha=1;
+    });
+  }finally{sharing=false;}
+  /* 2. 整台機身畫在 1080×1920 上，螢幕貼進去 */
+  var b=document.createElement("canvas");b.width=1080;b.height=1920;
+  var bctx=b.getContext("2d");
+  drawShell(bctx,a);
   if(b.toBlob)b.toBlob(function(blob){cb(blob,b);},"image/png");
   else cb(null,b);
 }
