@@ -1247,7 +1247,7 @@ function typing(e){
   var t=e&&e.target,n=t&&t.nodeName;
   return n==="INPUT"||n==="TEXTAREA"||n==="SELECT"||(t&&t.isContentEditable);
 }
-function down(k){if(formOpen)return;if(!held[k])just[k]=true;held[k]=true;}
+function down(k){if(formOpen){formKey(k);return;}if(!held[k])just[k]=true;held[k]=true;}
 function up(k){held[k]=false;}
 Array.prototype.forEach.call(document.querySelectorAll("[data-k]"),function(el){
   var k=el.dataset.k;el.style.touchAction="none";
@@ -1350,25 +1350,70 @@ function advance(){
   var a=PHASES[phase].after;
   if(a.battle){startBattle();return;}
   if(a.final){
-    guest={k:"nur",x:Math.max(30,Math.min(226,pl.x+26)),y:pl.y};
-    say("護士長 孫儷玹",["「都看完了。」","「評分表，就交給你了。」"],function(){
-      guest=null;phase++;
-      openMenu("提交評分表？",[
-        {label:"確定提交",fn:function(){finish();}},
-        {label:"再看一次",fn:function(){mode="play";}}
-      ]);
+    walkIn("nur","clinic",null,function(){
+      say("護士長 孫儷玹",["「都看完了。」","「評分表，就交給你了。」"],function(){
+        guest=null;phase++;
+        openMenu("提交評分表？",[
+          {label:"確定提交",fn:function(){finish();}},
+          {label:"再看一次",fn:function(){mode="play";}}
+        ]);
+      });
     });
     return;
   }
-  guest={k:a.npc,x:Math.max(30,Math.min(226,pl.x+26)),y:pl.y};
-  say(NPC[a.npc].name,a.lines,function(){
-    guest=null;phase++;room=a.go;opened[a.go]=1;applyHints(a);
-    pl.x=(room==="hall")?(HALLBACK[PHASES[phase-1].room]||128):128;
-    pl.y=(room==="hall")?114:108;
-    say("",["——　"+ROOMS[room].name+"　已解鎖　——"]);
+  /* 第一句是旁白（腳步聲、開門聲），先講完角色才從門口走出來，走到身邊才開口 */
+  walkIn(a.npc,a.go,a.lines[0],function(){
+    say(NPC[a.npc].name,a.lines.slice(1),function(){
+      guest=null;phase++;room=a.go;opened[a.go]=1;applyHints(a);
+      pl.x=(room==="hall")?(HALLBACK[PHASES[phase-1].room]||128):128;
+      pl.y=(room==="hall")?114:108;
+      say("",["——　"+ROOMS[room].name+"　已解鎖　——"]);
+    });
   });
 }
 var HALLBACK={office:34,clinic:88,popo:142,ward:208};
+
+/* ── 角色登場：從門口走出來，走到玩家身邊才觸發對話 ──
+   大廳有四扇門，走的是「要帶你去的那一間」的門；其他房間只有一扇門。
+   路線是先往下走出門框，再走向玩家身旁；被家具擋住就沿著滑，
+   真的卡死就直接穿過去（總比角色卡在桌子後面、對話永遠不開始好）。 */
+function walkIn(k,doorTo,pre,then){
+  var ds=DOORS[room],d=ds[0],i;
+  for(i=0;i<ds.length;i++)if(ds[i].to===doorTo)d=ds[i];
+  var dx=d.z[0]+d.z[2]/2,side=pl.x>=dx?-1:1;
+  var ty=Math.max(WALK.y0+4,pl.y),tx=null,cand=[pl.x+side*22,pl.x-side*22],j;
+  for(j=0;j<cand.length;j++){
+    var c=cand[j];
+    if(c>=WALK.x0+6&&c<=WALK.x1-6&&!blocked(c,ty)){tx=c;break;}
+  }
+  if(tx===null)tx=Math.max(WALK.x0+6,Math.min(WALK.x1-6,pl.x+side*22));
+  var go=function(){
+    guest={k:k,x:dx,y:WALK.y0,path:[[dx,WALK.y0+12],[tx,ty]],step:0,t:0,then:then};
+    mode="walkin";
+  };
+  if(pre)say("",[pre],go);else go();
+}
+function stepGuest(){
+  var G=guest,p=G.path[0],vx=p[0]-G.x,vy=p[1]-G.y,dist=Math.sqrt(vx*vx+vy*vy);
+  G.t++;G.step+=0.18;
+  /* 保險：六秒還沒走到就直接站到定位 */
+  if(G.t>360){p=G.path[G.path.length-1];G.path=[p];dist=0;}
+  if(dist<1.2){
+    G.x=p[0];G.y=p[1];G.path.shift();
+    if(G.path.length)return;
+    G.step=0;
+    pl.face=G.x<pl.x?-1:1;
+    var f=G.then;G.then=null;mode="play";if(f)f();
+    return;
+  }
+  var s=Math.min(1.1,dist),mx=vx/dist*s,my=vy/dist*s,nx=G.x,ny=G.y;
+  if(!blocked(nx+mx,ny))nx+=mx;
+  if(!blocked(nx,ny+my))ny+=my;
+  /* 沿著家具滑卻沒有更靠近（貼著床緣來回蹭），就直接穿過去 */
+  var nd=Math.sqrt((p[0]-nx)*(p[0]-nx)+(p[1]-ny)*(p[1]-ny));
+  if(nd>dist-s*0.5){nx=G.x+mx;ny=G.y+my;}
+  G.x=nx;G.y=ny;
+}
 
 /* ── 區域與碰撞 ── */
 /* 已經登場過的都留著：解鎖的區域可以隨時走回去補查 */
@@ -1601,6 +1646,8 @@ function update(){
 
   if(mode==="result"){if(just.a||just.start)location.reload();return;}
 
+  if(mode==="walkin"){stepGuest();return;}
+
   /* ── play ── */
   if(just.start){book={idx:found.length};mode="book";return;}
   if(just.select){say("推薦碼",["你的稽查員推薦碼：\n　　　"+myCode+
@@ -1713,7 +1760,8 @@ function drawPlay(){
 
   var actors=[];
   if(guest)actors.push({y:guest.y,f:function(){
-    sprite(NPC[guest.k].spr,guest.x,guest.y,guest.x>pl.x,0);}});
+    var gw=mode==="walkin"&&guest.path.length;
+    sprite(NPC[guest.k].spr,guest.x,guest.y,guest.x>pl.x,(gw&&Math.floor(guest.step)%2)?-1:0);}});
   actors.push({y:pl.y,f:function(){
     sprite("you",pl.x,pl.y,pl.face<0,(pl.walking&&Math.floor(pl.step)%2)?-1:0);}});
   actors.sort(function(a,b){return a.y-b.y;}).forEach(function(o){o.f();});
@@ -2284,6 +2332,15 @@ function sendForm(ok){
   },400);
 }
 
+/* 機身上的 Ａ＝確定（這一頁的紅色主按鈕）、Ｂ＝上一頁（第一頁是「稍後再說」，最後一頁是關閉）。
+   只接機身上的虛擬按鍵：實體鍵盤的 z／x 在輸入框裡要能打字，typing() 已經把它們擋在外面。 */
+function formKey(k){
+  if(k!=="a"&&k!=="b")return;
+  var cur=steps[step],btn=k==="a"
+    ?cur.querySelector("button.go")||cur.querySelector('[data-act="close"]')
+    :cur.querySelector('[data-act="back"],[data-act="skip"],[data-act="close"]');
+  if(btn&&!btn.disabled)btn.click();
+}
 mailBtn.addEventListener("click",openForm);
 subForm.addEventListener("click",function(e){
   var b=e.target.closest&&e.target.closest("button[data-act]");
