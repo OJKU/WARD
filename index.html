@@ -1136,6 +1136,51 @@ var found=[], resolved={}, unlocked={}, opened={hall:1}, hinted={};
 var myCode="", t0=0, elapsed=0, blink=0;
 var guest=null;
 
+/* ── 常駐：見過面之後，三位角色會留在自己的房間，走過去按 Ａ 可以聊天 ──
+   院長在院長室（認識他之後）、波波在自己房間（對戰之後）、護士長在病人房（解鎖之後）。
+   兩段對話輪流講。 */
+var RESIDENT={
+  doc :{room:"office",x:164,y:112,on:function(){return phase>=3;}},
+  popo:{room:"popo",  x:156,y:128,on:function(){return phase>=4;}},
+  nur :{room:"ward",  x:164,y:128,on:function(){return phase>=4;}}
+};
+var CHAT={
+  doc:[
+    ["「稽查員，還有什麼要問的？」",
+     "「這間病院，\n　是我一磚一瓦撐起來的。」\n「別家醫院做不到的，\n　我們做得到。」",
+     "「所以它必須是模範病院。」\n「……必須是。」"],
+    ["「牆上那些，你都看過了。」\n「每一張，\n　都是我拿時間換來的。」",
+     "「病人會走，醫生會走，\n　病院不會。」",
+     "「只要它是模範，\n　就會一直在這裡。」"]],
+  nur:[
+    ["「以前每個禮拜三，\n　這裡有音樂課。」\n「我彈琴，孩子們跟著唱。」",
+     "「院長說，那不算是醫療。」\n「琴就搬走了。」",
+     "「……現在禮拜三，很安靜。」"],
+    ["「你去過五四八那邊了嗎？」\n「那孩子……有點臭，對吧。」",
+     "「不是沒洗，\n　是他不肯讓人碰那隻兔子。」\n「抱著睡，抱著吃飯。」",
+     "「我也不忍心拿走。」"]],
+  popo:[
+    ["「你知道嗎，\n　我有一個好朋友喔！」\n「他會做好多好多東西。」",
+     "「兔子就是他做給我的。」\n「他說兔子會陪我，\n　他不在的時候。」"],
+    ["「好朋友很久沒來了。」\n「小儷說，\n　他暫時不會回來了……」",
+     "「我每天都跟兔子說，\n　要記得他長什麼樣子。」",
+     "「……你有看到他嗎？」"]]
+};
+var chatN={doc:0,nur:0,popo:0};
+function residents(){
+  var out=[];
+  for(var k in RESIDENT){
+    var R=RESIDENT[k];
+    if(R.room===room&&R.on()&&!(guest&&guest.k===k))out.push({k:k,x:R.x,y:R.y});
+  }
+  return out;
+}
+function chat(k){
+  var lines=CHAT[k][chatN[k]%2];chatN[k]++;
+  pl.face=RESIDENT[k].x<pl.x?-1:1;
+  say(NPC[k].name,lines);
+}
+
 function score(){var s=50;found.forEach(function(id){s+=CLUE[id].s;});return Math.max(0,Math.min(100,s));}
 function has(id){return found.indexOf(id)>=0;}
 function nMain(){var n=0;found.forEach(function(id){if(!CLUE[id].bonus)n++;});return n;}
@@ -1432,6 +1477,10 @@ function activeZone(){
     var d=DOORS[room][i];
     if(pl.x>=d.z[0]&&pl.x<=d.z[0]+d.z[2]&&pl.y>=d.z[1]&&pl.y<=d.z[1]+d.z[3])return {go:d.to};
   }
+  var rs=residents();
+  for(i=0;i<rs.length;i++){
+    if(Math.abs(pl.x-rs[i].x)<=26&&Math.abs(pl.y-rs[i].y)<=14)return {npc:rs[i].k};
+  }
   var ap=activeProps();
   for(i=0;i<ap.length;i++){
     var q=ap[i].p.zone;
@@ -1449,6 +1498,8 @@ var DOORS={
 };
 function blocked(x,y){
   var r=ROOMS[room],s=r.solids||[],i;
+  var rs=residents();
+  for(i=0;i<rs.length;i++)if(Math.abs(x-rs[i].x)<8&&y>rs[i].y-5&&y<rs[i].y+4)return true;
   for(i=0;i<s.length;i++){var b=s[i];if(x>b[0]&&x<b[0]+b[2]&&y>b[1]&&y<b[1]+b[3])return true;}
   var ap=activeProps();
   for(i=0;i<ap.length;i++){
@@ -1470,7 +1521,7 @@ var NEGR=[
  ["「你不要寫這個好不好。」\n「寫了他們就不給我糖了。」"]
 ];
 var SPECIAL={
- doll :["「那是我的兔子！」","「是一個哥哥做的。」\n「他說他也想要朋友。」"],
+ doll :["「那是我的兔子！」","「是我的好朋友做的。」\n「他說他也想要朋友。」"],
  draw :["「你有看我的畫！」\n「我畫了好多好多朋友喔。」"],
  sched:["「……那個是我的睡覺表。」","「我不想睡那麼久。」\n「睡著就沒有今天了。」"],
  safe :["「黑黑的……」\n「看了頭會痛。」"],
@@ -1678,6 +1729,7 @@ function update(){
           else{pl.x=128;pl.y=108;}
         }
       }
+      else if(z.npc)chat(z.npc);
       else if(z.clue)approach(z.clue);
     }
   }
@@ -1764,6 +1816,8 @@ function drawPlay(){
     var gw=mode==="walkin"&&guest.path.length;
     var sn=NPC[guest.k].spr;if(gw&&SPR[sn+"1"])sn+=(Math.floor(guest.step)%2?"1":"2");
     sprite(sn,guest.x,guest.y,guest.x>pl.x,(gw&&Math.floor(guest.step)%2)?-1:0);}});
+  residents().forEach(function(q){actors.push({y:q.y,f:function(){
+    sprite(NPC[q.k].spr,q.x,q.y,q.x>pl.x,0);}});});
   actors.push({y:pl.y,f:function(){
     sprite(pl.walking?(Math.floor(pl.step)%2?"you1":"you2"):"you",pl.x,pl.y,pl.face<0,(pl.walking&&Math.floor(pl.step)%2)?-1:0);}});
   actors.sort(function(a,b){return a.y-b.y;}).forEach(function(o){o.f();});
@@ -1772,6 +1826,7 @@ function drawPlay(){
   if(z&&mode==="play"){
     var label;
     if(z.go)label=(opened[z.go]?"→ ":"✕ ")+ROOMS[z.go].name+(opened[z.go]?"":"（上鎖）");
+    else if(z.npc)label="和 "+NPC[z.npc].name.split(" ")[0]+" 聊聊";
     else{
       var c=CLUE[z.clue];
       label=c.n;
